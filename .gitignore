@@ -1,0 +1,20 @@
+# Environment files
+.env
+cdp-api-key.json
+wallet-*.json
+.env.local
+.env*.local
+
+# Dependencies
+node_modules/
+
+# Build
+dist/
+.next/
+
+# OS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/

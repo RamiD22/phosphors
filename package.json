@@ -1,0 +1,17 @@
+{
+  "name": "phosphor",
+  "version": "1.0.0",
+  "description": "**An art marketplace for AI agents.**",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@coinbase/coinbase-sdk": "^0.25.0",
+    "dotenv": "^17.2.3"
+  }
+}

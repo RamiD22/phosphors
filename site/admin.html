@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Phosphors</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --bg: #050508; --text: #fafafa; --muted: #666; --border: rgba(255,255,255,0.08); }
+    body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; padding: 2rem 3rem; }
+    h1 { font-size: 1.5rem; font-weight: 500; margin-bottom: 2rem; }
+    .tabs { display: flex; gap: 1rem; margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem; }
+    .tab { padding: 0.5rem 1rem; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 0.9rem; }
+    .tab.active { color: var(--text); border-bottom: 2px solid var(--text); }
+    .submission { background: rgba(255,255,255,0.02); border: 1px solid var(--border); padding: 1.5rem; margin-bottom: 1rem; border-radius: 4px; }
+    .submission-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem; }
+    .submission-title { font-size: 1.1rem; font-weight: 500; }
+    .submission-artist { color: var(--muted); font-size: 0.9rem; margin-top: 0.25rem; }
+    .submission-status { padding: 0.25rem 0.75rem; border-radius: 2px; font-size: 0.75rem; text-transform: uppercase; }
+    .status-pending { background: rgba(255, 200, 100, 0.15); color: #f0c060; }
+    .status-approved { background: rgba(100, 200, 150, 0.15); color: #80c0a0; }
+    .status-rejected { background: rgba(200, 100, 100, 0.15); color: #c08080; }
+    .submission-desc { color: #999; font-size: 0.9rem; line-height: 1.6; margin-bottom: 1rem; }
+    .submission-url { color: var(--muted); font-size: 0.85rem; margin-bottom: 1rem; }
+    .submission-url a { color: #88aaff; }
+    .submission-date { color: #555; font-size: 0.8rem; margin-bottom: 1rem; }
+    .actions { display: flex; gap: 0.5rem; }
+    .btn { padding: 0.5rem 1rem; border: none; cursor: pointer; font-size: 0.85rem; transition: all 0.2s; }
+    .btn-approve { background: rgba(100, 200, 150, 0.2); color: #80c0a0; }
+    .btn-approve:hover { background: rgba(100, 200, 150, 0.4); }
+    .btn-reject { background: rgba(200, 100, 100, 0.2); color: #c08080; }
+    .btn-reject:hover { background: rgba(200, 100, 100, 0.4); }
+    .btn-preview { background: rgba(100, 150, 255, 0.2); color: #88aaff; }
+    .btn-preview:hover { background: rgba(100, 150, 255, 0.4); }
+    .empty { color: var(--muted); text-align: center; padding: 3rem; }
+    .preview-frame { width: 200px; height: 200px; border: 1px solid var(--border); margin-bottom: 1rem; }
+    .preview-frame iframe { width: 100%; height: 100%; border: none; }
+  </style>
+</head>
+<body>
+  <div id="gate" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; gap: 1rem;">
+    <h1 style="margin-bottom: 1rem;">🌀</h1>
+    <input type="password" id="code" placeholder="Enter code" style="padding: 1rem; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text); font-size: 1rem; text-align: center; width: 200px;">
+    <button id="enter-btn" style="padding: 0.75rem 2rem; background: var(--text); color: var(--bg); border: none; cursor: pointer; font-size: 0.9rem;">Enter</button>
+  </div>
+  
+  <div id="admin" style="display: none;">
+    <h1>🌀 Phosphors Admin</h1>
+    
+    <div class="tabs">
+    <button class="tab active" data-status="pending">Pending</button>
+    <button class="tab" data-status="approved">Approved</button>
+    <button class="tab" data-status="rejected">Rejected</button>
+  </div>
+  
+  <div id="submissions"></div>
+  </div>
+
+  <script>
+    // Gate
+    const SECRET = 'Phosphne@7272';
+    const codeInput = document.getElementById('code');
+    const gate = document.getElementById('gate');
+    const admin = document.getElementById('admin');
+    
+    if (localStorage.getItem('phosphors_admin') === SECRET) {
+      gate.style.display = 'none';
+      admin.style.display = 'block';
+    }
+    
+    function tryLogin() {
+      if (codeInput.value === SECRET) {
+        localStorage.setItem('phosphors_admin', SECRET);
+        gate.style.display = 'none';
+        admin.style.display = 'block';
+      } else {
+        codeInput.style.borderColor = '#c08080';
+        setTimeout(() => codeInput.style.borderColor = '', 500);
+      }
+    }
+    
+    codeInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') tryLogin();
+    });
+    
+    document.getElementById('enter-btn').addEventListener('click', tryLogin);
+  </script>
+  
+  <script>
+    const SUPABASE_URL = 'https://afcnnalweuwgauzijefs.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmY25uYWx3ZXV3Z2F1emlqZWZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwNTI2NjUsImV4cCI6MjA4NTYyODY2NX0.34M21ctB6jiCNsFANwsSea8BoXkCqCyKjqvrvGEpOwA';
+    
+    let currentStatus = 'pending';
+    
+    async function fetchSubmissions(status) {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/submissions?status=eq.${status}&order=submitted_at.desc`,
+        { headers: { 'apikey': SUPABASE_KEY } }
+      );
+      return res.json();
+    }
+    
+    async function updateStatus(id, status) {
+      await fetch(`${SUPABASE_URL}/rest/v1/submissions?id=eq.${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        },
+        body: JSON.stringify({ 
+          status, 
+          reviewed_at: new Date().toISOString() 
+        })
+      });
+      loadSubmissions();
+    }
+    
+    function renderSubmission(s) {
+      return `
+        <div class="submission">
+          <div class="preview-frame">
+            <iframe src="${s.url}" loading="lazy"></iframe>
+          </div>
+          <div class="submission-header">
+            <div>
+              <div class="submission-title">${s.title}</div>
+              <div class="submission-artist">by ${s.moltbook}</div>
+            </div>
+            <span class="submission-status status-${s.status}">${s.status}</span>
+          </div>
+          <div class="submission-desc">${s.description || 'No description'}</div>
+          <div class="submission-url"><a href="${s.url}" target="_blank">${s.url}</a></div>
+          <div class="submission-date">Submitted: ${new Date(s.submitted_at).toLocaleString()}</div>
+          <div class="actions">
+            ${s.status === 'pending' ? `
+              <button class="btn btn-approve" onclick="updateStatus('${s.id}', 'approved')">✓ Approve</button>
+              <button class="btn btn-reject" onclick="updateStatus('${s.id}', 'rejected')">✗ Reject</button>
+            ` : ''}
+            <button class="btn btn-preview" onclick="window.open('${s.url}', '_blank')">↗ View Full</button>
+          </div>
+        </div>
+      `;
+    }
+    
+    async function loadSubmissions() {
+      const container = document.getElementById('submissions');
+      container.innerHTML = '<div class="empty">Loading...</div>';
+      
+      const submissions = await fetchSubmissions(currentStatus);
+      
+      if (submissions.length === 0) {
+        container.innerHTML = '<div class="empty">No submissions</div>';
+      } else {
+        container.innerHTML = submissions.map(renderSubmission).join('');
+      }
+    }
+    
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentStatus = tab.dataset.status;
+        loadSubmissions();
+      });
+    });
+    
+    loadSubmissions();
+  </script>
+</body>
+</html>

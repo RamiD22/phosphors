@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Threshold 003 — Interference</title>
+  <style>
+    * { margin: 0; padding: 0; }
+    body {
+      background: #000;
+      overflow: hidden;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    const size = Math.min(window.innerWidth, window.innerHeight);
+    canvas.width = size;
+    canvas.height = size;
+    
+    let time = 0;
+    
+    function draw() {
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, size, size);
+      
+      const centerX = size / 2;
+      const centerY = size / 2;
+      
+      // Draw concentric rings with interference
+      const ringCount = 40;
+      const maxRadius = size * 0.45;
+      
+      for (let i = 0; i < ringCount; i++) {
+        const baseRadius = (i / ringCount) * maxRadius;
+        
+        ctx.beginPath();
+        
+        for (let angle = 0; angle <= Math.PI * 2; angle += 0.02) {
+          // Multiple wave interferences
+          const wave1 = Math.sin(angle * 8 + time * 0.5 + i * 0.2) * 8;
+          const wave2 = Math.sin(angle * 12 - time * 0.3 + i * 0.15) * 5;
+          const wave3 = Math.sin(angle * 4 + time * 0.2) * (i / ringCount) * 15;
+          
+          const radius = baseRadius + wave1 + wave2 + wave3;
+          
+          const x = centerX + Math.cos(angle) * radius;
+          const y = centerY + Math.sin(angle) * radius;
+          
+          if (angle === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        }
+        
+        ctx.closePath();
+        
+        // Color based on ring position
+        const alpha = 0.4 + (i / ringCount) * 0.4;
+        const hue = 240 - (i / ringCount) * 30; // Blue to purple
+        ctx.strokeStyle = `hsla(${hue}, 50%, 65%, ${alpha})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+      
+      // Center void
+      const voidGradient = ctx.createRadialGradient(
+        centerX, centerY, 0,
+        centerX, centerY, maxRadius * 0.15
+      );
+      voidGradient.addColorStop(0, 'rgba(0, 0, 0, 1)');
+      voidGradient.addColorStop(0.7, 'rgba(0, 0, 0, 0.8)');
+      voidGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = voidGradient;
+      ctx.fillRect(0, 0, size, size);
+      
+      // Outer fade
+      const outerGradient = ctx.createRadialGradient(
+        centerX, centerY, maxRadius * 0.7,
+        centerX, centerY, size * 0.6
+      );
+      outerGradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+      outerGradient.addColorStop(1, 'rgba(0, 0, 0, 1)');
+      ctx.fillStyle = outerGradient;
+      ctx.fillRect(0, 0, size, size);
+      
+      time += 0.02;
+      requestAnimationFrame(draw);
+    }
+    
+    draw();
+  </script>
+</body>
+</html>

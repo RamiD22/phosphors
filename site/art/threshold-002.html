@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Threshold 002 — Breath</title>
+  <style>
+    * { margin: 0; padding: 0; }
+    body {
+      background: #000;
+      overflow: hidden;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    const size = Math.min(window.innerWidth, window.innerHeight);
+    canvas.width = size;
+    canvas.height = size;
+    
+    const centerX = size / 2;
+    const centerY = size / 2;
+    
+    let time = 0;
+    
+    function easeInOutSine(t) {
+      return -(Math.cos(Math.PI * t) - 1) / 2;
+    }
+    
+    function draw() {
+      // Soft fade for trails
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+      ctx.fillRect(0, 0, size, size);
+      
+      // Breathing cycle - slow, meditative
+      const cycleLength = 240; // frames per full breath
+      const cycleProgress = (time % cycleLength) / cycleLength;
+      
+      // Inhale (0 to 0.4), hold (0.4 to 0.5), exhale (0.5 to 0.9), hold (0.9 to 1)
+      let breathPhase;
+      if (cycleProgress < 0.4) {
+        breathPhase = easeInOutSine(cycleProgress / 0.4);
+      } else if (cycleProgress < 0.5) {
+        breathPhase = 1;
+      } else if (cycleProgress < 0.9) {
+        breathPhase = 1 - easeInOutSine((cycleProgress - 0.5) / 0.4);
+      } else {
+        breathPhase = 0;
+      }
+      
+      const minRadius = size * 0.08;
+      const maxRadius = size * 0.35;
+      const currentRadius = minRadius + (maxRadius - minRadius) * breathPhase;
+      
+      // Draw the breath — concentric circles
+      const ringCount = 20;
+      
+      for (let i = ringCount; i >= 0; i--) {
+        const ringProgress = i / ringCount;
+        const ringRadius = currentRadius * ringProgress;
+        
+        // Soft glow falloff
+        const alpha = (1 - ringProgress) * 0.15;
+        const hue = 220 + ringProgress * 20;
+        
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, ringRadius, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${hue}, 40%, 75%, ${alpha})`;
+        ctx.fill();
+      }
+      
+      // Core
+      const coreGradient = ctx.createRadialGradient(
+        centerX, centerY, 0,
+        centerX, centerY, currentRadius * 0.3
+      );
+      coreGradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+      coreGradient.addColorStop(0.3, 'rgba(200, 210, 255, 0.5)');
+      coreGradient.addColorStop(1, 'rgba(150, 170, 220, 0)');
+      
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, currentRadius * 0.3, 0, Math.PI * 2);
+      ctx.fillStyle = coreGradient;
+      ctx.fill();
+      
+      time++;
+      requestAnimationFrame(draw);
+    }
+    
+    draw();
+  </script>
+</body>
+</html>

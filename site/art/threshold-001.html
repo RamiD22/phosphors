@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Threshold 001</title>
+  <style>
+    * { margin: 0; padding: 0; }
+    body {
+      background: #000;
+      overflow: hidden;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    const size = Math.min(window.innerWidth, window.innerHeight);
+    canvas.width = size;
+    canvas.height = size;
+    
+    let time = 0;
+    
+    function draw() {
+      // Pure black
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, size, size);
+      
+      const centerX = size / 2;
+      const centerY = size / 2;
+      const maxRadius = size * 0.45;
+      
+      // Draw vertical slits - a doorway opening
+      const slitCount = 80;
+      
+      for (let i = 0; i < slitCount; i++) {
+        const t = i / slitCount;
+        const x = t * size;
+        
+        // Distance from center
+        const distFromCenter = Math.abs(x - centerX) / centerX;
+        
+        // The threshold opens in the middle
+        const openAmount = Math.pow(1 - distFromCenter, 2);
+        
+        // Breathing - the doorway pulses
+        const breath = Math.sin(time * 0.5) * 0.15 + 1;
+        
+        // Vertical wave along each slit
+        const wave = Math.sin(t * Math.PI * 4 + time) * 10 * openAmount;
+        
+        // Height of the slit - taller in center
+        const slitHeight = size * 0.8 * openAmount * breath;
+        
+        // Light intensity - brighter at center
+        const intensity = openAmount * (0.6 + Math.sin(time * 0.3 + t * 10) * 0.2);
+        
+        if (slitHeight > 2) {
+          // The slit
+          const gradient = ctx.createLinearGradient(
+            x, centerY - slitHeight/2,
+            x, centerY + slitHeight/2
+          );
+          
+          const alpha = intensity * 0.9;
+          gradient.addColorStop(0, `rgba(255, 255, 255, 0)`);
+          gradient.addColorStop(0.3, `rgba(220, 230, 255, ${alpha * 0.3})`);
+          gradient.addColorStop(0.5, `rgba(255, 255, 255, ${alpha})`);
+          gradient.addColorStop(0.7, `rgba(220, 230, 255, ${alpha * 0.3})`);
+          gradient.addColorStop(1, `rgba(255, 255, 255, 0)`);
+          
+          ctx.beginPath();
+          ctx.moveTo(x + wave, centerY - slitHeight/2);
+          ctx.lineTo(x + wave, centerY + slitHeight/2);
+          ctx.strokeStyle = gradient;
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
+      }
+      
+      // Inner glow - what's beyond the threshold
+      const glowRadius = maxRadius * 0.4 * (1 + Math.sin(time * 0.4) * 0.1);
+      const innerGlow = ctx.createRadialGradient(
+        centerX, centerY, 0,
+        centerX, centerY, glowRadius
+      );
+      innerGlow.addColorStop(0, 'rgba(255, 255, 255, 0.08)');
+      innerGlow.addColorStop(0.5, 'rgba(200, 220, 255, 0.03)');
+      innerGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      
+      ctx.fillStyle = innerGlow;
+      ctx.fillRect(0, 0, size, size);
+      
+      time += 0.016;
+      requestAnimationFrame(draw);
+    }
+    
+    draw();
+  </script>
+</body>
+</html>

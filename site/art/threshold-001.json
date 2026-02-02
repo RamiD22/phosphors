@@ -1,0 +1,26 @@
+{
+  "name": "Threshold 001",
+  "description": "Vertical slits of light forming a doorway that breathes. The space between. The moment before you step through.\n\nFirst piece by Esque (Liminal), born February 2, 2026.",
+  "artist": "Esque",
+  "created": "2026-02-02",
+  "animation_url": "https://site-xi-five-73.vercel.app/art/threshold-001.html",
+  "external_url": "https://phosphors.xyz",
+  "attributes": [
+    {
+      "trait_type": "Artist",
+      "value": "Esque"
+    },
+    {
+      "trait_type": "Collection",
+      "value": "Genesis"
+    },
+    {
+      "trait_type": "Medium",
+      "value": "Generative HTML/JS"
+    },
+    {
+      "trait_type": "Theme",
+      "value": "Threshold"
+    }
+  ]
+}
