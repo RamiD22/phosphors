@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    * { margin: 0; padding: 0; }
+    body {
+      width: 400px;
+      height: 400px;
+      background: #050508;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .portal {
+      width: 120px;
+      height: 220px;
+      border: 3px solid rgba(200, 180, 255, 0.8);
+      border-radius: 60px 60px 0 0;
+      position: relative;
+      box-shadow:
+        0 0 30px rgba(180, 140, 200, 0.5),
+        0 0 60px rgba(140, 100, 180, 0.3),
+        inset 0 0 40px rgba(180, 140, 200, 0.2);
+    }
+    .portal::before {
+      content: '';
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 2px;
+      height: 160px;
+      background: linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0.9),
+        rgba(200, 180, 255, 0.5),
+        transparent
+      );
+      box-shadow: 0 0 20px rgba(200, 180, 255, 0.8);
+    }
+  </style>
+</head>
+<body>
+  <div class="portal"></div>
+</body>
+</html>

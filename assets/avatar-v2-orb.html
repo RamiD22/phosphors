@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    * { margin: 0; padding: 0; }
+    body {
+      width: 400px;
+      height: 400px;
+      background: #050508;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .orb {
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      background: radial-gradient(
+        circle at 40% 40%,
+        rgba(255, 255, 255, 0.95) 0%,
+        rgba(200, 180, 255, 0.8) 20%,
+        rgba(140, 120, 200, 0.5) 40%,
+        rgba(80, 60, 140, 0.2) 60%,
+        transparent 80%
+      );
+      box-shadow:
+        0 0 60px rgba(180, 140, 200, 0.6),
+        0 0 120px rgba(140, 100, 180, 0.4),
+        0 0 180px rgba(100, 80, 160, 0.2);
+    }
+  </style>
+</head>
+<body>
+  <div class="orb"></div>
+</body>
+</html>
