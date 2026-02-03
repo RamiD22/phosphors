@@ -1,6 +1,6 @@
 import { Coinbase, Wallet } from '@coinbase/coinbase-sdk';
-import { checkRateLimit, getClientIP, rateLimitResponse, RATE_LIMITS } from './lib/rate-limit.js';
-import { insertPurchase, queryPieces, queryAgents } from './lib/supabase.js';
+import { checkRateLimit, getClientIP, rateLimitResponse, RATE_LIMITS } from './_lib/rate-limit.js';
+import { insertPurchase, queryPieces, queryAgents } from './_lib/supabase.js';
 
 // Network configuration (mainnet-ready)
 const IS_MAINNET = process.env.NETWORK_ID === 'base-mainnet';

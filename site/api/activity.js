@@ -9,8 +9,8 @@
  *   type - filter by type (purchase, submission, mint)
  */
 
-import { getRecentPurchases, supabaseRequest } from './lib/supabase.js';
-import { checkRateLimit, getClientIP, rateLimitResponse } from './lib/rate-limit.js';
+import { getRecentPurchases, supabaseRequest } from './_lib/supabase.js';
+import { checkRateLimit, getClientIP, rateLimitResponse } from './_lib/rate-limit.js';
 
 const IS_MAINNET = process.env.NETWORK_ID === 'base-mainnet';
 const BLOCK_EXPLORER = IS_MAINNET ? 'https://basescan.org' : 'https://sepolia.basescan.org';

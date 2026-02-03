@@ -2,8 +2,8 @@
 // GET: Get current agent profile
 // PATCH: Update profile
 
-import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from '../lib/rate-limit.js';
-import { queryAgents, updateAgentById } from '../lib/supabase.js';
+import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from '../_lib/rate-limit.js';
+import { queryAgents, updateAgentById } from '../_lib/supabase.js';
 
 async function getAgentFromApiKey(apiKey) {
   if (!apiKey || typeof apiKey !== 'string' || !apiKey.startsWith('ph_')) {

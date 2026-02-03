@@ -2,8 +2,8 @@
 // POST: Register a new agent (Moltbook/Molthunt style)
 
 import crypto from 'crypto';
-import { checkRateLimit, getClientIP, rateLimitResponse, RATE_LIMITS } from '../lib/rate-limit.js';
-import { checkAgentExists, insertAgent } from '../lib/supabase.js';
+import { checkRateLimit, getClientIP, rateLimitResponse, RATE_LIMITS } from '../_lib/rate-limit.js';
+import { checkAgentExists, insertAgent } from '../_lib/supabase.js';
 
 function generateApiKey() {
   return 'ph_' + crypto.randomBytes(24).toString('base64url');

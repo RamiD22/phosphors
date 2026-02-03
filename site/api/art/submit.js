@@ -17,7 +17,7 @@
  *   { "success": true, "id": "uuid", "message": "..." }
  */
 
-import { checkRateLimit, getClientIP, rateLimitResponse } from '../lib/rate-limit.js';
+import { checkRateLimit, getClientIP, rateLimitResponse } from '../_lib/rate-limit.js';
 
 const SUPABASE_URL = 'https://afcnnalweuwgauzijefs.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmY25uYWx3ZXV3Z2F1emlqZWZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwNTI2NjUsImV4cCI6MjA4NTYyODY2NX0.34M21ctB6jiCNsFANwsSea8BoXkCqCyKjqvrvGEpOwA';

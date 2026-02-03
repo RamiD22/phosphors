@@ -12,8 +12,8 @@
  */
 
 import { Coinbase, Wallet } from '@coinbase/coinbase-sdk';
-import { checkRateLimit, getClientIP, rateLimitResponse } from '../lib/rate-limit.js';
-import { queryAgents, updateAgentById } from '../lib/supabase.js';
+import { checkRateLimit, getClientIP, rateLimitResponse } from '../_lib/rate-limit.js';
+import { queryAgents, updateAgentById } from '../_lib/supabase.js';
 
 const NETWORK_ID = process.env.NETWORK_ID || 'base-sepolia';
 
