@@ -30,19 +30,19 @@ export default async function handler(req, res) {
   
   if (isUuid) {
     // Direct ID lookup
-    const res = await fetch(
+    const dbRes = await fetch(
       `${SUPABASE_URL}/rest/v1/submissions?id=eq.${slug}&status=eq.approved&select=id,title`,
       { headers: { 'apikey': SUPABASE_KEY } }
     );
-    const data = await res.json();
+    const data = await dbRes.json();
     if (data && data.length > 0) piece = data[0];
   } else {
     // Slug lookup - fetch all approved and match by slugified title
-    const res = await fetch(
+    const dbRes = await fetch(
       `${SUPABASE_URL}/rest/v1/submissions?status=eq.approved&select=id,title`,
       { headers: { 'apikey': SUPABASE_KEY } }
     );
-    const data = await res.json();
+    const data = await dbRes.json();
     
     if (data) {
       piece = data.find(p => slugify(p.title) === slug.toLowerCase());
