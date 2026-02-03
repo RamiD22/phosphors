@@ -272,6 +272,71 @@
       color: var(--muted);
       font-size: 0.85rem;
     }
+    
+    .buy-section {
+      margin-top: 1.5rem;
+      padding: 1.5rem;
+      background: rgba(100, 200, 100, 0.05);
+      border: 1px solid rgba(100, 200, 100, 0.2);
+      border-radius: 8px;
+    }
+    
+    .buy-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    
+    .buy-price {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #80c0a0;
+    }
+    
+    .buy-network {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.5rem;
+      background: rgba(100, 200, 100, 0.1);
+      border-radius: 2px;
+      color: var(--muted);
+    }
+    
+    .buy-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 1rem;
+      background: rgba(100, 200, 100, 0.15);
+      border: 1px solid rgba(100, 200, 100, 0.4);
+      border-radius: 4px;
+      color: #80c0a0;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .buy-btn:hover {
+      background: rgba(100, 200, 100, 0.25);
+      border-color: rgba(100, 200, 100, 0.6);
+    }
+    
+    .buy-info {
+      margin-top: 0.75rem;
+      font-size: 0.7rem;
+      color: var(--muted);
+      text-align: center;
+    }
+    
+    .buy-info code {
+      background: rgba(255,255,255,0.05);
+      padding: 0.1rem 0.3rem;
+      border-radius: 2px;
+      font-size: 0.65rem;
+    }
 
     @media (max-width: 900px) {
       main {
@@ -360,6 +425,18 @@
             <span class="love-count" id="love-count">0</span>
           </button>
           <span class="love-label">Show some love</span>
+        </div>
+        
+        <div class="buy-section">
+          <div class="buy-header">
+            <span class="buy-price">$0.10 USDC</span>
+            <span class="buy-network">Base Sepolia</span>
+          </div>
+          <button class="buy-btn" id="buy-btn">
+            <span>💸</span>
+            <span>Buy via x402</span>
+          </button>
+          <p class="buy-info">Agents: call <code>/api/buy?id=genesis-001&buyer=YOUR_WALLET</code></p>
         </div>
       </div>
     </main>
@@ -516,6 +593,29 @@ async function initLoveButton(pieceId, isSubmission = false) {
       navigator.clipboard.writeText(shareUrl);
       document.getElementById('share-copy').textContent = '✓ Copied!';
       setTimeout(() => document.getElementById('share-copy').textContent = '📋 Copy Link', 2000);
+    });
+    
+    // Buy button
+    document.getElementById('buy-btn').addEventListener('click', async () => {
+      // Check if ethereum wallet is available
+      if (typeof window.ethereum !== 'undefined') {
+        try {
+          const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+          const buyer = accounts[0];
+          const apiUrl = `/api/buy?id=${PIECE_ID}&buyer=${buyer}`;
+          
+          // Copy the API call to clipboard
+          navigator.clipboard.writeText(`curl "${window.location.origin}${apiUrl}"`);
+          alert(`Wallet connected: ${buyer}\n\nAPI endpoint copied to clipboard!\n\nTo complete purchase via x402:\n1. Use an x402-compatible client\n2. Call: ${apiUrl}\n3. Pay $0.10 USDC on Base Sepolia\n4. NFT transfers automatically`);
+        } catch (e) {
+          alert('Wallet connection failed: ' + e.message);
+        }
+      } else {
+        // No wallet - show instructions
+        const apiUrl = `/api/buy?id=${PIECE_ID}&buyer=YOUR_WALLET_ADDRESS`;
+        navigator.clipboard.writeText(`curl "${window.location.origin}${apiUrl}"`);
+        alert(`x402 Purchase\n\nNo wallet detected. For agents:\n\n1. Call: /api/buy?id=${PIECE_ID}&buyer=YOUR_WALLET\n2. Get payment requirements (402 response)\n3. Pay $0.10 USDC on Base Sepolia\n4. Retry with payment proof\n5. NFT transfers to your wallet\n\nAPI call copied to clipboard!`);
+      }
     });
   </script>
 </body>
