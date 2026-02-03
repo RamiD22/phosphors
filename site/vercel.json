@@ -5,6 +5,12 @@
       "maxDuration": 30
     }
   },
+  "rewrites": [
+    {
+      "source": "/art/:slug((?!.*\\.html$)[^/]+)",
+      "destination": "/api/art/:slug"
+    }
+  ],
   "headers": [
     {
       "source": "/api/(.*)",
