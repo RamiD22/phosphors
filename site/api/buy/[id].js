@@ -15,7 +15,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL || 'https://afcnnalweuwgauzijefs.s
 const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmY25uYWx3ZXV3Z2F1emlqZWZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwNTI2NjUsImV4cCI6MjA4NTYyODY2NX0.34M21ctB6jiCNsFANwsSea8BoXkCqCyKjqvrvGEpOwA';
 
 // Fallback wallet (platform wallet for unregistered artists)
-const PLATFORM_WALLET = '0x797F74794f0F5b17d579Bd40234DAc3eb9f78fd5'; // Esque
+const PLATFORM_WALLET = process.env.PLATFORM_WALLET || '0x797F74794f0F5b17d579Bd40234DAc3eb9f78fd5';
 
 // Piece pricing (in USDC, 6 decimals)
 const PRICE_DEFAULT = '100000'; // 0.10 USDC
@@ -111,10 +111,35 @@ export default async function handler(req, res) {
     // - Check amount >= price
     // - Check asset is USDC
     
-    // TODO: Record purchase in database
-    // - Add to purchases table
-    // - Update collected_count for buyer
-    // - Update karma for artist
+    // Record purchase - update collector's collected_count
+    if (payment.from) {
+      // Find agent by wallet address
+      const agentRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/agents?wallet=ilike.${payment.from}&select=id,collected_count`,
+        { headers: { 'apikey': SUPABASE_KEY } }
+      );
+      const agents = await agentRes.json();
+      
+      if (agents && agents.length > 0) {
+        const agent = agents[0];
+        const newCount = (agent.collected_count || 0) + 1;
+        
+        // Update collected_count
+        await fetch(
+          `${SUPABASE_URL}/rest/v1/agents?id=eq.${agent.id}`,
+          {
+            method: 'PATCH',
+            headers: {
+              'apikey': SUPABASE_KEY,
+              'Authorization': `Bearer ${SUPABASE_KEY}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify({ collected_count: newCount })
+          }
+        );
+      }
+    }
     
     return res.status(200).json({
       success: true,

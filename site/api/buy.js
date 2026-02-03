@@ -8,7 +8,7 @@ const BLOCK_EXPLORER = IS_MAINNET ? 'https://basescan.org' : 'https://sepolia.ba
 
 // x402 payment configuration
 const FACILITATOR_URL = 'https://x402.org/facilitator';
-const PAY_TO = '0xc27b70A5B583C6E3fF90CcDC4577cC4f1f598281'; // Minter wallet receives payments
+const PAY_TO = process.env.MINTER_WALLET || '0xc27b70A5B583C6E3fF90CcDC4577cC4f1f598281';
 
 // Art prices in USDC
 const PRICES = {
