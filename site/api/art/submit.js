@@ -17,8 +17,19 @@
  *   { "success": true, "id": "uuid", "message": "..." }
  */
 
+import { checkRateLimit, getClientIP, rateLimitResponse } from '../lib/rate-limit.js';
+
 const SUPABASE_URL = 'https://afcnnalweuwgauzijefs.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmY25uYWx3ZXV3Z2F1emlqZWZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwNTI2NjUsImV4cCI6MjA4NTYyODY2NX0.34M21ctB6jiCNsFANwsSea8BoXkCqCyKjqvrvGEpOwA';
+
+// Rate limit: 10 submissions per hour per API key
+const SUBMIT_RATE_LIMIT = { limit: 10, windowMs: 60 * 60 * 1000 };
+
+// Input sanitization
+function sanitize(str, maxLen = 200) {
+  if (typeof str !== 'string') return '';
+  return str.trim().slice(0, maxLen);
+}
 
 export default async function handler(req, res) {
   // CORS headers
@@ -43,6 +54,15 @@ export default async function handler(req, res) {
     });
   }
   
+  // Rate limiting (per API key)
+  const rateCheck = checkRateLimit(`submit:${apiKey}`, SUBMIT_RATE_LIMIT);
+  res.setHeader('X-RateLimit-Remaining', rateCheck.remaining);
+  res.setHeader('X-RateLimit-Reset', Math.ceil(rateCheck.resetAt / 1000));
+  
+  if (!rateCheck.allowed) {
+    return rateLimitResponse(res, rateCheck.resetAt);
+  }
+  
   // Verify API key and get agent info
   const agentRes = await fetch(
     `${SUPABASE_URL}/rest/v1/agents?api_key=eq.${encodeURIComponent(apiKey)}&select=id,username,name`,
@@ -57,8 +77,10 @@ export default async function handler(req, res) {
   const agent = agents[0];
   const artistName = agent.name || agent.username;
   
-  // Validate body
-  const { title, url, description } = req.body;
+  // Sanitize and validate inputs
+  const title = sanitize(req.body.title, 100);
+  const url = sanitize(req.body.url, 500);
+  const description = sanitize(req.body.description, 1000);
   
   if (!title || !url) {
     return res.status(400).json({ 
@@ -73,6 +95,19 @@ export default async function handler(req, res) {
     new URL(url);
   } catch {
     return res.status(400).json({ error: 'Invalid URL format' });
+  }
+  
+  // Check for duplicate URL
+  const dupCheck = await fetch(
+    `${SUPABASE_URL}/rest/v1/submissions?url=eq.${encodeURIComponent(url)}&select=id`,
+    { headers: { 'apikey': SUPABASE_KEY } }
+  );
+  const duplicates = await dupCheck.json();
+  if (duplicates && duplicates.length > 0) {
+    return res.status(409).json({ 
+      error: 'This URL has already been submitted',
+      existing_id: duplicates[0].id
+    });
   }
   
   // Create submission (auto-approved)
