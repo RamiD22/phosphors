@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Threshold 006 — Geometry</title>
+  <style>
+    * { margin: 0; padding: 0; }
+    body { background: #000; overflow: hidden; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    
+    function resize() {
+      canvas.width = canvas.height = Math.min(window.innerWidth, window.innerHeight);
+    }
+    resize();
+    window.addEventListener('resize', resize);
+    
+    let t = 0;
+    
+    function drawPolygon(cx, cy, radius, sides, rotation) {
+      ctx.beginPath();
+      for (let i = 0; i <= sides; i++) {
+        const angle = (i / sides) * Math.PI * 2 + rotation;
+        const x = cx + Math.cos(angle) * radius;
+        const y = cy + Math.sin(angle) * radius;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+    }
+    
+    function draw() {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.03)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+      const maxRadius = Math.min(canvas.width, canvas.height) * 0.4;
+      
+      const layers = 12;
+      
+      for (let i = 0; i < layers; i++) {
+        const progress = i / layers;
+        const radius = maxRadius * (0.2 + progress * 0.8);
+        const sides = 3 + (i % 5);
+        const rotation = t * 0.005 * (i % 2 === 0 ? 1 : -1) + progress * Math.PI;
+        
+        drawPolygon(cx, cy, radius, sides, rotation);
+        
+        const hue = 260 + i * 15 + Math.sin(t * 0.01) * 30;
+        ctx.strokeStyle = `hsla(${hue}, 70%, 55%, ${0.3 + progress * 0.3})`;
+        ctx.lineWidth = 1 + progress;
+        ctx.stroke();
+      }
+      
+      // Center glow
+      const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxRadius * 0.3);
+      gradient.addColorStop(0, `hsla(${280 + Math.sin(t * 0.02) * 20}, 80%, 60%, 0.1)`);
+      gradient.addColorStop(1, 'transparent');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      t++;
+      requestAnimationFrame(draw);
+    }
+    draw();
+  </script>
+</body>
+</html>

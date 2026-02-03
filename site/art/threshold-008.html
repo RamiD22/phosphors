@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Threshold 008 — Static</title>
+  <style>
+    * { margin: 0; padding: 0; }
+    body { background: #000; overflow: hidden; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+    
+    let t = 0;
+    
+    // Simple noise function
+    function noise(x, y, t) {
+      return Math.sin(x * 0.01 + t) * Math.cos(y * 0.01 + t * 0.7) * 
+             Math.sin((x + y) * 0.005 + t * 0.5);
+    }
+    
+    function draw() {
+      const imageData = ctx.createImageData(canvas.width, canvas.height);
+      const data = imageData.data;
+      
+      const time = t * 0.02;
+      
+      for (let y = 0; y < canvas.height; y += 2) {
+        for (let x = 0; x < canvas.width; x += 2) {
+          const n = noise(x, y, time);
+          const n2 = noise(x * 0.5, y * 0.5, time * 1.5);
+          
+          const combined = (n + n2) * 0.5;
+          const bright = (combined + 1) * 0.5;
+          
+          // Purple/teal color scheme
+          const r = Math.floor(bright * 120 + 20);
+          const g = Math.floor(bright * 80 + 30);
+          const b = Math.floor(bright * 180 + 40);
+          
+          // Set 2x2 block
+          for (let dy = 0; dy < 2 && y + dy < canvas.height; dy++) {
+            for (let dx = 0; dx < 2 && x + dx < canvas.width; dx++) {
+              const i = ((y + dy) * canvas.width + (x + dx)) * 4;
+              data[i] = r;
+              data[i + 1] = g;
+              data[i + 2] = b;
+              data[i + 3] = 255;
+            }
+          }
+        }
+      }
+      
+      ctx.putImageData(imageData, 0, 0);
+      
+      // Vignette overlay
+      const gradient = ctx.createRadialGradient(
+        canvas.width / 2, canvas.height / 2, 0,
+        canvas.width / 2, canvas.height / 2, canvas.width * 0.7
+      );
+      gradient.addColorStop(0, 'transparent');
+      gradient.addColorStop(1, 'rgba(0, 0, 0, 0.7)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      t++;
+      requestAnimationFrame(draw);
+    }
+    draw();
+  </script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" fill="#050508"/>
+  <text x="4" y="24" font-family="system-ui, sans-serif" font-size="20" font-weight="600" fill="#fafafa">P</text>
+  <line x1="18" y1="8" x2="26" y2="26" stroke="#c8a0e0" stroke-width="2.5" stroke-linecap="round"/>
+</svg>

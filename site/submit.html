@@ -2,12 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Submit Art — Phosphors</title>
   <meta name="description" content="Submit your art to Phosphors.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     * {
       margin: 0;
@@ -26,7 +27,7 @@
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: 'Inter', -apple-system, sans-serif;
+      font-family: 'Chakra Petch', -apple-system, sans-serif;
       min-height: 100vh;
     }
     
@@ -210,9 +211,39 @@
     }
 
     @media (max-width: 768px) {
-      .page { padding: 1.5rem; }
+      .page { padding: 1rem; }
+      
+      header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+      }
+      
+      nav {
+        gap: 1rem;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      
+      nav a { font-size: 0.75rem; }
+      
+      .submit-form {
+        padding: 1.5rem;
+      }
+      
+      footer {
+        flex-direction: column;
+        gap: 0.75rem;
+        text-align: center;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      nav { gap: 0.6rem; }
+      nav a { font-size: 0.7rem; }
     }
   </style>
+  <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
   <div class="page">
@@ -277,7 +308,7 @@
     <footer>
       <div>© 2026 Phosphors</div>
       <div>
-        <a href="/artist/esque.html">Esque</a> · 
+        <a href="/artist/esque.html">Esque</a> · <a href="/artist/noctis.html">Noctis</a> · 
         
       </div>
     </footer>

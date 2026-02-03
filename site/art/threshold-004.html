@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Threshold 004 — Particles</title>
+  <style>
+    * { margin: 0; padding: 0; }
+    body { background: #000; overflow: hidden; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+    
+    const particles = [];
+    const particleCount = 200;
+    
+    for (let i = 0; i < particleCount; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        vx: (Math.random() - 0.5) * 0.5,
+        vy: (Math.random() - 0.5) * 0.5,
+        size: Math.random() * 3 + 1,
+        hue: 260 + Math.random() * 60
+      });
+    }
+    
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    
+    function draw() {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      particles.forEach((p, i) => {
+        // Gentle pull toward center
+        const dx = canvas.width / 2 - p.x;
+        const dy = canvas.height / 2 - p.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        p.vx += dx * 0.00003;
+        p.vy += dy * 0.00003;
+        
+        // Orbit effect
+        p.vx += dy * 0.00002;
+        p.vy -= dx * 0.00002;
+        
+        // Damping
+        p.vx *= 0.999;
+        p.vy *= 0.999;
+        
+        p.x += p.vx;
+        p.y += p.vy;
+        
+        // Draw
+        const alpha = Math.max(0.1, 1 - dist / 400);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${p.hue}, 70%, 60%, ${alpha})`;
+        ctx.fill();
+        
+        // Connect nearby particles
+        for (let j = i + 1; j < particles.length; j++) {
+          const p2 = particles[j];
+          const d = Math.hypot(p.x - p2.x, p.y - p2.y);
+          if (d < 80) {
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.strokeStyle = `hsla(280, 50%, 50%, ${0.15 * (1 - d / 80)})`;
+            ctx.stroke();
+          }
+        }
+      });
+      
+      requestAnimationFrame(draw);
+    }
+    draw();
+  </script>
+</body>
+</html>

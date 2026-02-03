@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hypnagogia</title>
+  <style>
+    * { margin: 0; padding: 0; }
+    body { background: #030308; overflow: hidden; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+    
+    // Dalí-esque melting, floating dream forms
+    const forms = [];
+    let t = 0;
+    
+    function createForm() {
+      return {
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        basePoints: generateBlobPoints(5 + Math.floor(Math.random() * 4)),
+        size: 40 + Math.random() * 120,
+        phase: Math.random() * Math.PI * 2,
+        morphSpeed: 0.003 + Math.random() * 0.005,
+        floatSpeed: 0.2 + Math.random() * 0.4,
+        floatPhase: Math.random() * Math.PI * 2,
+        hue: Math.random() < 0.4 ? 270 + Math.random() * 40 : 
+             Math.random() < 0.7 ? 180 + Math.random() * 40 : 
+             30 + Math.random() * 30, // purple, teal, or amber
+        saturation: 40 + Math.random() * 30,
+        drip: Math.random() * 0.5,
+        rotation: Math.random() * Math.PI * 2,
+        rotSpeed: (Math.random() - 0.5) * 0.002
+      };
+    }
+    
+    function generateBlobPoints(n) {
+      const points = [];
+      for (let i = 0; i < n; i++) {
+        const angle = (i / n) * Math.PI * 2;
+        points.push({
+          angle: angle,
+          radius: 0.7 + Math.random() * 0.6,
+          morphOffset: Math.random() * Math.PI * 2,
+          morphAmp: 0.1 + Math.random() * 0.3
+        });
+      }
+      return points;
+    }
+    
+    // Initialize forms
+    for (let i = 0; i < 8; i++) {
+      forms.push(createForm());
+    }
+    
+    function drawMeltingForm(form) {
+      ctx.save();
+      ctx.translate(form.x, form.y);
+      ctx.rotate(form.rotation);
+      
+      // Calculate morphed points
+      const points = form.basePoints.map(p => {
+        const morph = Math.sin(t * form.morphSpeed + p.morphOffset) * p.morphAmp;
+        const meltStretch = p.angle > Math.PI * 0.25 && p.angle < Math.PI * 0.75 ? 
+          form.drip * Math.sin(t * 0.01 + form.phase) * 0.5 : 0;
+        return {
+          angle: p.angle,
+          radius: (p.radius + morph + meltStretch) * form.size
+        };
+      });
+      
+      // Draw multiple glow layers
+      for (let layer = 4; layer >= 0; layer--) {
+        const layerScale = 1 + layer * 0.15;
+        const alpha = 0.15 / (layer + 1);
+        
+        ctx.beginPath();
+        
+        // Smooth curve through points
+        for (let i = 0; i <= points.length; i++) {
+          const p0 = points[(i - 1 + points.length) % points.length];
+          const p1 = points[i % points.length];
+          const p2 = points[(i + 1) % points.length];
+          
+          const x1 = Math.cos(p1.angle) * p1.radius * layerScale;
+          const y1 = Math.sin(p1.angle) * p1.radius * layerScale;
+          
+          if (i === 0) {
+            ctx.moveTo(x1, y1);
+          } else {
+            const x0 = Math.cos(p0.angle) * p0.radius * layerScale;
+            const y0 = Math.sin(p0.angle) * p0.radius * layerScale;
+            const x2 = Math.cos(p2.angle) * p2.radius * layerScale;
+            const y2 = Math.sin(p2.angle) * p2.radius * layerScale;
+            
+            const cpx = x1;
+            const cpy = y1;
+            const endx = (x1 + x2) / 2;
+            const endy = (y1 + y2) / 2;
+            
+            ctx.quadraticCurveTo(cpx, cpy, endx, endy);
+          }
+        }
+        ctx.closePath();
+        
+        const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, form.size * layerScale * 1.2);
+        const hueShift = Math.sin(t * 0.005 + form.phase) * 15;
+        gradient.addColorStop(0, `hsla(${form.hue + hueShift}, ${form.saturation}%, 60%, ${alpha * 1.5})`);
+        gradient.addColorStop(0.6, `hsla(${form.hue + hueShift + 20}, ${form.saturation - 10}%, 50%, ${alpha})`);
+        gradient.addColorStop(1, 'transparent');
+        
+        ctx.fillStyle = gradient;
+        ctx.fill();
+      }
+      
+      ctx.restore();
+    }
+    
+    function draw() {
+      // Very slow fade for dreamy trails
+      ctx.fillStyle = 'rgba(3, 3, 8, 0.03)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Update and draw forms
+      forms.forEach(form => {
+        // Gentle floating motion
+        form.y += Math.sin(t * 0.008 + form.floatPhase) * form.floatSpeed;
+        form.x += Math.cos(t * 0.006 + form.floatPhase) * form.floatSpeed * 0.5;
+        form.rotation += form.rotSpeed;
+        
+        // Wrap around
+        if (form.y > canvas.height + form.size) form.y = -form.size;
+        if (form.y < -form.size) form.y = canvas.height + form.size;
+        if (form.x > canvas.width + form.size) form.x = -form.size;
+        if (form.x < -form.size) form.x = canvas.width + form.size;
+        
+        drawMeltingForm(form);
+      });
+      
+      // Subtle overall dreamy haze
+      const haze = ctx.createRadialGradient(
+        canvas.width / 2, canvas.height / 2, 0,
+        canvas.width / 2, canvas.height / 2, canvas.width * 0.7
+      );
+      haze.addColorStop(0, `hsla(${270 + Math.sin(t * 0.003) * 20}, 40%, 30%, 0.02)`);
+      haze.addColorStop(1, 'transparent');
+      ctx.fillStyle = haze;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      t++;
+      requestAnimationFrame(draw);
+    }
+    
+    draw();
+  </script>
+</body>
+</html>

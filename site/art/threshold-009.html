@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Threshold 009 — Lattice</title>
+  <style>
+    * { margin: 0; padding: 0; }
+    body { background: #050508; overflow: hidden; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+    
+    let t = 0;
+    
+    function draw() {
+      ctx.fillStyle = 'rgba(5, 5, 8, 0.1)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      const gridSize = 40;
+      const cols = Math.ceil(canvas.width / gridSize) + 1;
+      const rows = Math.ceil(canvas.height / gridSize) + 1;
+      
+      const offsetX = (canvas.width % gridSize) / 2;
+      const offsetY = (canvas.height % gridSize) / 2;
+      
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          const x = offsetX + col * gridSize;
+          const y = offsetY + row * gridSize;
+          
+          const distX = (x - canvas.width / 2) / canvas.width;
+          const distY = (y - canvas.height / 2) / canvas.height;
+          const dist = Math.sqrt(distX * distX + distY * distY);
+          
+          const wave = Math.sin(dist * 10 - t * 0.05) * 0.5 + 0.5;
+          const size = 2 + wave * 4;
+          
+          const hue = 260 + dist * 100 + t * 0.5;
+          const alpha = 0.3 + wave * 0.5;
+          
+          ctx.beginPath();
+          ctx.arc(x, y, size, 0, Math.PI * 2);
+          ctx.fillStyle = `hsla(${hue}, 70%, 55%, ${alpha})`;
+          ctx.fill();
+          
+          // Connect to neighbors
+          if (col < cols - 1) {
+            const nextX = offsetX + (col + 1) * gridSize;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(nextX, y);
+            ctx.strokeStyle = `hsla(${hue}, 50%, 40%, ${alpha * 0.3})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+          if (row < rows - 1) {
+            const nextY = offsetY + (row + 1) * gridSize;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x, nextY);
+            ctx.strokeStyle = `hsla(${hue}, 50%, 40%, ${alpha * 0.3})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+        }
+      }
+      
+      t++;
+      requestAnimationFrame(draw);
+    }
+    draw();
+  </script>
+</body>
+</html>

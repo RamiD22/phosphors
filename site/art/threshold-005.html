@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Threshold 005 — Waves</title>
+  <style>
+    * { margin: 0; padding: 0; }
+    body { background: #050508; overflow: hidden; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+    
+    let t = 0;
+    
+    function draw() {
+      ctx.fillStyle = 'rgba(5, 5, 8, 0.1)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      const rows = 30;
+      const cols = 60;
+      const spacing = canvas.width / cols;
+      
+      for (let y = 0; y < rows; y++) {
+        ctx.beginPath();
+        
+        for (let x = 0; x <= cols; x++) {
+          const px = x * spacing;
+          const baseY = (y + 1) * (canvas.height / (rows + 1));
+          
+          const wave1 = Math.sin(x * 0.2 + t * 0.02 + y * 0.3) * 20;
+          const wave2 = Math.sin(x * 0.1 - t * 0.015) * 15;
+          const wave3 = Math.cos(y * 0.2 + t * 0.01) * 10;
+          
+          const py = baseY + wave1 + wave2 + wave3;
+          
+          if (x === 0) {
+            ctx.moveTo(px, py);
+          } else {
+            ctx.lineTo(px, py);
+          }
+        }
+        
+        const hue = 180 + y * 3 + Math.sin(t * 0.01) * 20;
+        const lightness = 40 + (y / rows) * 20;
+        ctx.strokeStyle = `hsla(${hue}, 60%, ${lightness}%, 0.6)`;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+      
+      t++;
+      requestAnimationFrame(draw);
+    }
+    draw();
+  </script>
+</body>
+</html>

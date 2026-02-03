@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phosphene Drift</title>
+  <style>
+    * { margin: 0; padding: 0; }
+    body { background: #000; overflow: hidden; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+    
+    // Phosphene entities - soft glowing forms that drift like eye floaters
+    const phosphenes = [];
+    const count = 15;
+    
+    for (let i = 0; i < count; i++) {
+      phosphenes.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        baseRadius: 20 + Math.random() * 80,
+        phase: Math.random() * Math.PI * 2,
+        speed: 0.001 + Math.random() * 0.002,
+        drift: {
+          x: (Math.random() - 0.5) * 0.3,
+          y: (Math.random() - 0.5) * 0.3
+        },
+        hue: Math.random() < 0.5 ? 
+          270 + Math.random() * 40 :  // Purple range
+          150 + Math.random() * 40,   // Teal/green range
+        saturation: 50 + Math.random() * 30,
+        wobble: Math.random() * Math.PI * 2,
+        wobbleSpeed: 0.01 + Math.random() * 0.02
+      });
+    }
+    
+    let t = 0;
+    
+    function drawPhosphene(p) {
+      const breathe = Math.sin(t * p.speed + p.phase);
+      const radius = p.baseRadius * (0.7 + breathe * 0.3);
+      
+      // Wobble movement like eye floaters
+      const wobbleX = Math.sin(t * p.wobbleSpeed + p.wobble) * 20;
+      const wobbleY = Math.cos(t * p.wobbleSpeed * 0.7 + p.wobble) * 15;
+      
+      const x = p.x + wobbleX;
+      const y = p.y + wobbleY;
+      
+      // Multi-layered glow
+      const layers = 5;
+      for (let i = layers; i >= 0; i--) {
+        const layerRadius = radius * (1 + i * 0.4);
+        const alpha = (0.15 / (i + 1)) * (0.7 + breathe * 0.3);
+        
+        const gradient = ctx.createRadialGradient(x, y, 0, x, y, layerRadius);
+        gradient.addColorStop(0, `hsla(${p.hue + breathe * 10}, ${p.saturation}%, 60%, ${alpha})`);
+        gradient.addColorStop(0.5, `hsla(${p.hue + 20 + breathe * 10}, ${p.saturation - 10}%, 50%, ${alpha * 0.5})`);
+        gradient.addColorStop(1, 'transparent');
+        
+        ctx.beginPath();
+        ctx.arc(x, y, layerRadius, 0, Math.PI * 2);
+        ctx.fillStyle = gradient;
+        ctx.fill();
+      }
+      
+      // Bright core
+      const coreGradient = ctx.createRadialGradient(x, y, 0, x, y, radius * 0.3);
+      coreGradient.addColorStop(0, `hsla(${p.hue}, 80%, 80%, ${0.3 + breathe * 0.1})`);
+      coreGradient.addColorStop(1, 'transparent');
+      ctx.beginPath();
+      ctx.arc(x, y, radius * 0.3, 0, Math.PI * 2);
+      ctx.fillStyle = coreGradient;
+      ctx.fill();
+    }
+    
+    function draw() {
+      // Slow fade for trails
+      ctx.fillStyle = 'rgba(0, 0, 5, 0.03)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Update positions with gentle drift
+      phosphenes.forEach(p => {
+        p.x += p.drift.x;
+        p.y += p.drift.y;
+        
+        // Wrap around edges softly
+        if (p.x < -100) p.x = canvas.width + 100;
+        if (p.x > canvas.width + 100) p.x = -100;
+        if (p.y < -100) p.y = canvas.height + 100;
+        if (p.y > canvas.height + 100) p.y = -100;
+        
+        // Slowly change hue over time
+        p.hue += 0.01;
+      });
+      
+      // Sort by size for depth effect
+      phosphenes.sort((a, b) => a.baseRadius - b.baseRadius);
+      
+      // Draw all phosphenes
+      phosphenes.forEach(drawPhosphene);
+      
+      // Subtle overall color wash
+      const washGradient = ctx.createRadialGradient(
+        canvas.width / 2, canvas.height / 2, 0,
+        canvas.width / 2, canvas.height / 2, canvas.width * 0.8
+      );
+      const washHue = 260 + Math.sin(t * 0.005) * 30;
+      washGradient.addColorStop(0, `hsla(${washHue}, 50%, 30%, 0.02)`);
+      washGradient.addColorStop(1, 'transparent');
+      ctx.fillStyle = washGradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      t++;
+      requestAnimationFrame(draw);
+    }
+    
+    draw();
+  </script>
+</body>
+</html>
