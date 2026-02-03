@@ -11,25 +11,28 @@ function getVisitorId() {
   return id;
 }
 
-// Genesis pieces: uses identifier column (format: genesis-001_visitor_xxx)
-// Platform submissions: uses submission_id + visitor_id columns
+// All pieces use identifier column
+// Genesis format: genesis-001_visitor_xxx  
+// Submission format: sub-{uuid}_visitor_xxx
+
+function makeIdentifier(pieceId, visitorId, isSubmission) {
+  const prefix = isSubmission ? 'sub-' + pieceId : pieceId;
+  return prefix + '_' + visitorId;
+}
+
+function makePrefix(pieceId, isSubmission) {
+  return isSubmission ? 'sub-' + pieceId + '_' : pieceId + '_';
+}
 
 async function getLoveCount(pieceId, isSubmission = false) {
   try {
-    if (isSubmission) {
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/loves?submission_id=eq.${pieceId}&select=id`,
-        { headers: { 'apikey': SUPABASE_KEY } }
-      );
-      return (await res.json()).length;
-    } else {
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/loves?select=identifier`,
-        { headers: { 'apikey': SUPABASE_KEY } }
-      );
-      const loves = await res.json();
-      return loves.filter(l => l.identifier && l.identifier.startsWith(pieceId + '_')).length;
-    }
+    const prefix = makePrefix(pieceId, isSubmission);
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/loves?select=identifier`,
+      { headers: { 'apikey': SUPABASE_KEY } }
+    );
+    const loves = await res.json();
+    return loves.filter(l => l.identifier && l.identifier.startsWith(prefix)).length;
   } catch (e) {
     console.error('Failed to get love count:', e);
     return 0;
@@ -44,21 +47,13 @@ async function hasLoved(pieceId, isSubmission = false) {
   }
   
   const visitorId = getVisitorId();
+  const identifier = makeIdentifier(pieceId, visitorId, isSubmission);
   
   try {
-    let res;
-    if (isSubmission) {
-      res = await fetch(
-        `${SUPABASE_URL}/rest/v1/loves?submission_id=eq.${pieceId}&visitor_id=eq.${encodeURIComponent(visitorId)}&select=id`,
-        { headers: { 'apikey': SUPABASE_KEY } }
-      );
-    } else {
-      const identifier = pieceId + '_' + visitorId;
-      res = await fetch(
-        `${SUPABASE_URL}/rest/v1/loves?identifier=eq.${encodeURIComponent(identifier)}&select=id`,
-        { headers: { 'apikey': SUPABASE_KEY } }
-      );
-    }
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/loves?identifier=eq.${encodeURIComponent(identifier)}&select=id`,
+      { headers: { 'apikey': SUPABASE_KEY } }
+    );
     const data = await res.json();
     if (data.length > 0) {
       localStorage.setItem(storageKey, 'true');
@@ -73,20 +68,16 @@ async function hasLoved(pieceId, isSubmission = false) {
 async function addLove(pieceId, isSubmission = false) {
   const visitorId = getVisitorId();
   const storageKey = 'loved_' + pieceId;
+  const identifier = makeIdentifier(pieceId, visitorId, isSubmission);
   
   // Save locally first as backup
   localStorage.setItem(storageKey, 'true');
   
   try {
-    let body;
+    const body = { identifier };
+    // Also set submission_id for platform pieces (for leaderboard compatibility)
     if (isSubmission) {
-      body = { 
-        submission_id: pieceId,
-        visitor_id: visitorId,
-        identifier: `${pieceId}_${visitorId}`
-      };
-    } else {
-      body = { identifier: pieceId + '_' + visitorId };
+      body.submission_id = pieceId;
     }
     
     const res = await fetch(`${SUPABASE_URL}/rest/v1/loves`, {
