@@ -4,23 +4,27 @@
  * Create a CDP wallet for an agent. One wallet per agent.
  * 
  * Headers:
- *   X-API-Key: ph_xxx
+ *   Authorization: Bearer ph_xxx
+ *   (also supports X-API-Key for backwards compatibility)
  * 
  * Returns:
  *   { "success": true, "wallet": { "address": "0x...", "network": "base" } }
  */
 
 import { Coinbase, Wallet } from '@coinbase/coinbase-sdk';
+import { checkRateLimit, getClientIP, rateLimitResponse } from '../lib/rate-limit.js';
+import { queryAgents, updateAgentById } from '../lib/supabase.js';
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://afcnnalweuwgauzijefs.supabase.co';
-const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
 const NETWORK_ID = process.env.NETWORK_ID || 'base-sepolia';
+
+// Rate limit: 3 wallet creations per hour per IP
+const WALLET_RATE_LIMIT = { limit: 3, windowMs: 60 * 60 * 1000 };
 
 export default async function handler(req, res) {
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-API-Key');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key');
   
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -30,24 +34,42 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed. Use POST.' });
   }
   
-  // Get API key
-  const apiKey = req.headers['x-api-key'];
+  // Get API key (support both Authorization header and X-API-Key)
+  let apiKey = req.headers['x-api-key'];
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) {
+    apiKey = authHeader.slice(7);
+  }
+  
   if (!apiKey || !apiKey.startsWith('ph_')) {
     return res.status(401).json({ 
-      error: 'Missing or invalid API key',
-      hint: 'Include X-API-Key header with your ph_xxx key'
+      success: false,
+      error: {
+        code: 'UNAUTHORIZED',
+        message: 'Missing or invalid API key',
+        hint: 'Include Authorization: Bearer ph_xxx header'
+      }
     });
   }
   
+  // Rate limiting
+  const clientIP = getClientIP(req);
+  const rateCheck = checkRateLimit(`wallet:${clientIP}`, WALLET_RATE_LIMIT);
+  res.setHeader('X-RateLimit-Remaining', rateCheck.remaining);
+  res.setHeader('X-RateLimit-Reset', Math.ceil(rateCheck.resetAt / 1000));
+  
+  if (!rateCheck.allowed) {
+    return rateLimitResponse(res, rateCheck.resetAt);
+  }
+  
   // Get agent
-  const agentRes = await fetch(
-    `${SUPABASE_URL}/rest/v1/agents?api_key=eq.${encodeURIComponent(apiKey)}&select=id,username,name,wallet`,
-    { headers: { 'apikey': SUPABASE_KEY } }
-  );
-  const agents = await agentRes.json();
+  const agents = await queryAgents({ api_key: apiKey }, 'id,username,name,wallet');
   
   if (!agents || agents.length === 0) {
-    return res.status(401).json({ error: 'Invalid API key' });
+    return res.status(401).json({ 
+      success: false,
+      error: { code: 'UNAUTHORIZED', message: 'Invalid API key' }
+    });
   }
   
   const agent = agents[0];
@@ -59,13 +81,17 @@ export default async function handler(req, res) {
       message: 'Wallet already exists',
       wallet: {
         address: agent.wallet,
-        network: NETWORK_ID === 'base-mainnet' ? 'base' : 'base-sepolia'
+        network: NETWORK_ID === 'base-mainnet' ? 'Base' : 'Base Sepolia'
       }
     });
   }
   
   try {
     // Configure CDP
+    if (!process.env.CDP_API_KEY_ID || !process.env.CDP_API_KEY_SECRET) {
+      throw new Error('CDP credentials not configured');
+    }
+    
     Coinbase.configure({
       apiKeyName: process.env.CDP_API_KEY_ID,
       privateKey: process.env.CDP_API_KEY_SECRET.replace(/\\n/g, '\n')
@@ -77,25 +103,22 @@ export default async function handler(req, res) {
     const walletAddress = address.getId();
     
     // Save wallet address to agent profile
-    const updateRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/agents?id=eq.${agent.id}`,
-      {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`
-        },
-        body: JSON.stringify({ wallet: walletAddress })
-      }
-    );
+    const updated = await updateAgentById(agent.id, { 
+      wallet: walletAddress.toLowerCase() 
+    });
     
-    if (!updateRes.ok) {
-      console.error('Failed to save wallet:', await updateRes.text());
-      return res.status(500).json({ error: 'Failed to save wallet to profile' });
+    if (!updated) {
+      console.error('Failed to save wallet to profile');
+      return res.status(500).json({ 
+        success: false,
+        error: { code: 'INTERNAL_ERROR', message: 'Failed to save wallet to profile' }
+      });
     }
     
     const networkDisplay = NETWORK_ID === 'base-mainnet' ? 'Base' : 'Base Sepolia';
+    const explorerBase = NETWORK_ID === 'base-mainnet' ? 'basescan.org' : 'sepolia.basescan.org';
+    
+    console.log(`✅ Wallet created for ${agent.username}: ${walletAddress}`);
     
     return res.status(201).json({
       success: true,
@@ -105,16 +128,16 @@ export default async function handler(req, res) {
         network: networkDisplay
       },
       next_steps: [
-        `Fund your wallet with USDC to start collecting`,
-        `View on explorer: https://${NETWORK_ID === 'base-mainnet' ? '' : 'sepolia.'}basescan.org/address/${walletAddress}`
+        'Fund your wallet with USDC to start collecting',
+        `View on explorer: https://${explorerBase}/address/${walletAddress}`
       ]
     });
     
   } catch (error) {
     console.error('Wallet creation error:', error);
     return res.status(500).json({ 
-      error: 'Failed to create wallet',
-      details: error.message 
+      success: false,
+      error: { code: 'INTERNAL_ERROR', message: 'Failed to create wallet' }
     });
   }
 }

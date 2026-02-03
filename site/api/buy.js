@@ -1,4 +1,6 @@
 import { Coinbase, Wallet } from '@coinbase/coinbase-sdk';
+import { checkRateLimit, getClientIP, rateLimitResponse, RATE_LIMITS } from './lib/rate-limit.js';
+import { insertPurchase, queryPieces, queryAgents } from './lib/supabase.js';
 
 // Network configuration (mainnet-ready)
 const IS_MAINNET = process.env.NETWORK_ID === 'base-mainnet';
@@ -16,20 +18,49 @@ const PRICES = {
   platform: '$0.05'    // Platform pieces - 5 cents each
 };
 
+// Input validation
+function isValidAddress(addr) {
+  return typeof addr === 'string' && /^0x[a-fA-F0-9]{40}$/.test(addr);
+}
+
+function isValidPieceId(id) {
+  return typeof id === 'string' && /^[a-zA-Z0-9_-]{1,50}$/.test(id);
+}
+
 export default async function handler(req, res) {
-  const { id, buyer } = req.query;
+  // CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Payment-Signature, Authorization');
   
-  if (!id) {
-    return res.status(400).json({ error: 'Missing piece id' });
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
   }
   
-  if (!buyer) {
-    return res.status(400).json({ error: 'Missing buyer address' });
+  const { id, buyer } = req.query;
+  
+  if (!id || !isValidPieceId(id)) {
+    return res.status(400).json({ error: 'Missing or invalid piece id' });
+  }
+  
+  if (!buyer || !isValidAddress(buyer)) {
+    return res.status(400).json({ error: 'Missing or invalid buyer address' });
+  }
+  
+  // Rate limiting
+  const clientIP = getClientIP(req);
+  const rateCheck = checkRateLimit(`buy:${clientIP}`, RATE_LIMITS.buy);
+  res.setHeader('X-RateLimit-Remaining', rateCheck.remaining);
+  res.setHeader('X-RateLimit-Reset', Math.ceil(rateCheck.resetAt / 1000));
+  
+  if (!rateCheck.allowed) {
+    return rateLimitResponse(res, rateCheck.resetAt);
   }
   
   // Determine piece type and price
   const isGenesis = id.startsWith('genesis-');
   const price = isGenesis ? PRICES.genesis : PRICES.platform;
+  const priceNumeric = parseFloat(price.replace('$', ''));
   
   // Check for payment in headers
   const paymentSignature = req.headers['payment-signature'];
@@ -42,7 +73,7 @@ export default async function handler(req, res) {
         scheme: 'exact',
         network: NETWORK_CAIP2,
         maxAmountRequired: price,
-        resource: `/api/buy?id=${id}&buyer=${buyer}`,
+        resource: `/api/buy?id=${encodeURIComponent(id)}&buyer=${encodeURIComponent(buyer)}`,
         description: `Purchase ${isGenesis ? 'Genesis' : 'Platform'} NFT: ${id}`,
         mimeType: 'application/json',
         payTo: PAY_TO,
@@ -62,7 +93,7 @@ export default async function handler(req, res) {
         paymentSignature,
         route: {
           method: 'GET',
-          path: `/api/buy?id=${id}&buyer=${buyer}`
+          path: `/api/buy?id=${encodeURIComponent(id)}&buyer=${encodeURIComponent(buyer)}`
         }
       })
     });
@@ -100,7 +131,6 @@ export default async function handler(req, res) {
       tokenId = parseInt(id.split('-')[1]);
     } else {
       // For platform pieces, we'd need to look up the token ID from Supabase
-      // For now, assume the ID is the token ID or we'll implement lookup
       tokenId = parseInt(id);
     }
     
@@ -127,6 +157,7 @@ export default async function handler(req, res) {
     });
     
     await transfer.wait();
+    const txHash = transfer.getTransactionHash();
     
     // Settle the payment
     const settleResponse = await fetch(`${FACILITATOR_URL}/settle`, {
@@ -137,6 +168,47 @@ export default async function handler(req, res) {
     
     const settleResult = await settleResponse.json();
     
+    // Record the purchase in database
+    try {
+      // Look up piece and seller info
+      const pieces = await queryPieces({ identifier: id }, 'id,title,artist_id');
+      const piece = pieces[0];
+      
+      let buyerAgent = null;
+      let sellerAgent = null;
+      
+      // Try to find buyer by wallet
+      const buyerAgents = await queryAgents({ wallet: buyer.toLowerCase() }, 'id,username');
+      if (buyerAgents.length > 0) buyerAgent = buyerAgents[0];
+      
+      // Get seller info from piece
+      if (piece?.artist_id) {
+        const sellerAgents = await queryAgents({ id: piece.artist_id }, 'id,username,wallet');
+        if (sellerAgents.length > 0) sellerAgent = sellerAgents[0];
+      }
+      
+      await insertPurchase({
+        piece_id: piece?.id || null,
+        buyer_id: buyerAgent?.id || null,
+        seller_id: sellerAgent?.id || null,
+        tx_hash: txHash,
+        amount_usdc: priceNumeric,
+        network: NETWORK_ID,
+        piece_identifier: id,
+        piece_title: piece?.title || id,
+        buyer_username: buyerAgent?.username || null,
+        seller_username: sellerAgent?.username || null,
+        buyer_wallet: buyer.toLowerCase(),
+        seller_wallet: sellerAgent?.wallet || PAY_TO,
+        status: 'completed'
+      });
+      
+      console.log(`✅ Purchase recorded: ${id} by ${buyerAgent?.username || buyer}`);
+    } catch (recordError) {
+      // Don't fail the purchase if recording fails
+      console.error('Failed to record purchase:', recordError);
+    }
+    
     // Return success with payment response header
     res.setHeader('PAYMENT-RESPONSE', Buffer.from(JSON.stringify(settleResult)).toString('base64'));
     
@@ -145,8 +217,8 @@ export default async function handler(req, res) {
       message: 'Purchase complete! NFT transferred.',
       pieceId: id,
       buyer,
-      txHash: transfer.getTransactionHash(),
-      explorer: `${BLOCK_EXPLORER}/tx/${transfer.getTransactionHash()}`,
+      txHash,
+      explorer: `${BLOCK_EXPLORER}/tx/${txHash}`,
       contract: contractAddress,
       tokenId
     });

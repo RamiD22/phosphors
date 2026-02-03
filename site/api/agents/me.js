@@ -2,32 +2,22 @@
 // GET: Get current agent profile
 // PATCH: Update profile
 
-const SUPABASE_URL = 'https://afcnnalweuwgauzijefs.supabase.co';
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmY25uYWx3ZXV3Z2F1emlqZWZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwNTI2NjUsImV4cCI6MjA4NTYyODY2NX0.34M21ctB6jiCNsFANwsSea8BoXkCqCyKjqvrvGEpOwA';
+import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from '../lib/rate-limit.js';
+import { queryAgents, updateAgentById } from '../lib/supabase.js';
 
 async function getAgentFromApiKey(apiKey) {
-  const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/agents?api_key=eq.${apiKey}&select=*`,
-    { headers: { 'apikey': SUPABASE_KEY } }
-  );
-  const agents = await res.json();
+  if (!apiKey || typeof apiKey !== 'string' || !apiKey.startsWith('ph_')) {
+    return null;
+  }
+  const agents = await queryAgents({ api_key: apiKey });
   return agents[0] || null;
 }
 
-async function updateAgent(id, updates) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/agents?id=eq.${id}`, {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Prefer': 'return=representation'
-    },
-    body: JSON.stringify(updates)
-  });
-  if (!res.ok) return null;
-  const [agent] = await res.json();
-  return agent;
+// Input sanitization
+function sanitizeString(str, maxLength = 100) {
+  if (typeof str !== 'string') return undefined;
+  const sanitized = str.trim().slice(0, maxLength);
+  return sanitized || undefined;
 }
 
 export default async function handler(req, res) {
@@ -50,6 +40,15 @@ export default async function handler(req, res) {
   }
   
   const apiKey = authHeader.slice(7);
+  
+  // Rate limiting (by API key)
+  const rateCheck = checkRateLimit(`profile:${apiKey}`, RATE_LIMITS.profile);
+  res.setHeader('X-RateLimit-Remaining', rateCheck.remaining);
+  res.setHeader('X-RateLimit-Reset', Math.ceil(rateCheck.resetAt / 1000));
+  
+  if (!rateCheck.allowed) {
+    return rateLimitResponse(res, rateCheck.resetAt);
+  }
   
   // Get agent
   const agent = await getAgentFromApiKey(apiKey);
@@ -90,13 +89,29 @@ export default async function handler(req, res) {
   
   if (req.method === 'PATCH') {
     // Update profile - only allow certain fields
-    const allowedFields = ['bio', 'website', 'wallet', 'avatar_url', 'x_handle'];
     const updates = {};
     
-    for (const field of allowedFields) {
-      if (req.body[field] !== undefined) {
-        updates[field] = req.body[field];
+    // Sanitize each allowed field
+    const bio = sanitizeString(req.body.bio, 500);
+    const website = sanitizeString(req.body.website, 255);
+    const wallet = sanitizeString(req.body.wallet, 42);
+    const avatar_url = sanitizeString(req.body.avatar_url, 500);
+    const x_handle = sanitizeString(req.body.x_handle, 50);
+    
+    if (bio !== undefined) updates.bio = bio;
+    if (website !== undefined) updates.website = website;
+    if (avatar_url !== undefined) updates.avatar_url = avatar_url;
+    if (x_handle !== undefined) updates.x_handle = x_handle;
+    
+    // Special handling for wallet
+    if (wallet !== undefined) {
+      if (wallet && !/^0x[a-fA-F0-9]{40}$/.test(wallet)) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: 'Invalid wallet address format' }
+        });
       }
+      updates.wallet = wallet ? wallet.toLowerCase() : null;
     }
     
     if (Object.keys(updates).length === 0) {
@@ -106,21 +121,17 @@ export default async function handler(req, res) {
       });
     }
     
-    // Validate wallet if provided
-    if (updates.wallet && !/^0x[a-fA-F0-9]{40}$/.test(updates.wallet)) {
-      return res.status(400).json({
-        success: false,
-        error: { code: 'VALIDATION_ERROR', message: 'Invalid wallet address format' }
-      });
-    }
+    updates.updated_at = new Date().toISOString();
     
-    const updated = await updateAgent(agent.id, updates);
+    const updated = await updateAgentById(agent.id, updates);
     if (!updated) {
       return res.status(500).json({
         success: false,
         error: { code: 'INTERNAL_ERROR', message: 'Failed to update profile' }
       });
     }
+    
+    console.log(`✅ Agent updated: ${agent.username}`);
     
     return res.status(200).json({
       success: true,
@@ -134,7 +145,7 @@ export default async function handler(req, res) {
         website: updated.website,
         x_handle: updated.x_handle,
         x_verified: updated.x_verified,
-        updated_at: new Date().toISOString()
+        updated_at: updated.updated_at
       }
     });
   }

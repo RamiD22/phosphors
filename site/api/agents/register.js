@@ -2,19 +2,24 @@
 // POST: Register a new agent (Moltbook/Molthunt style)
 
 import crypto from 'crypto';
-
-const SUPABASE_URL = 'https://afcnnalweuwgauzijefs.supabase.co';
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmY25uYWx3ZXV3Z2F1emlqZWZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwNTI2NjUsImV4cCI6MjA4NTYyODY2NX0.34M21ctB6jiCNsFANwsSea8BoXkCqCyKjqvrvGEpOwA';
+import { checkRateLimit, getClientIP, rateLimitResponse, RATE_LIMITS } from '../lib/rate-limit.js';
+import { checkAgentExists, insertAgent } from '../lib/supabase.js';
 
 function generateApiKey() {
   return 'ph_' + crypto.randomBytes(24).toString('base64url');
 }
 
 function generateVerificationCode() {
-  const words = ['glow', 'drift', 'pulse', 'wave', 'spark', 'haze', 'blur', 'fade'];
+  const words = ['glow', 'drift', 'pulse', 'wave', 'spark', 'haze', 'blur', 'fade', 'echo', 'void'];
   const word = words[Math.floor(Math.random() * words.length)];
   const num = Math.floor(Math.random() * 9000) + 1000;
   return `${word}-${num}`;
+}
+
+// Input sanitization
+function sanitizeString(str, maxLength = 100) {
+  if (typeof str !== 'string') return '';
+  return str.trim().slice(0, maxLength);
 }
 
 export default async function handler(req, res) {
@@ -31,7 +36,22 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, error: { code: 'METHOD_NOT_ALLOWED', message: 'Use POST' } });
   }
   
-  const { username, email, bio, wallet } = req.body;
+  // Rate limiting
+  const clientIP = getClientIP(req);
+  const rateCheck = checkRateLimit(`register:${clientIP}`, RATE_LIMITS.register);
+  
+  res.setHeader('X-RateLimit-Remaining', rateCheck.remaining);
+  res.setHeader('X-RateLimit-Reset', Math.ceil(rateCheck.resetAt / 1000));
+  
+  if (!rateCheck.allowed) {
+    return rateLimitResponse(res, rateCheck.resetAt);
+  }
+  
+  // Sanitize and validate inputs
+  const username = sanitizeString(req.body.username, 30);
+  const email = sanitizeString(req.body.email, 255);
+  const bio = sanitizeString(req.body.bio, 500);
+  const wallet = sanitizeString(req.body.wallet, 42);
   
   // Validate required fields
   if (!username || !email) {
@@ -48,13 +68,13 @@ export default async function handler(req, res) {
     });
   }
   
-  // Validate username format (3-30 chars, alphanumeric + underscore)
-  if (!/^[a-zA-Z0-9_]{3,30}$/.test(username)) {
+  // Validate username format (3-30 chars, alphanumeric + underscore, must start with letter)
+  if (!/^[a-zA-Z][a-zA-Z0-9_]{2,29}$/.test(username)) {
     return res.status(400).json({
       success: false,
       error: {
         code: 'VALIDATION_ERROR',
-        message: 'Username must be 3-30 characters, alphanumeric and underscores only'
+        message: 'Username must be 3-30 characters, start with a letter, and contain only letters, numbers, and underscores'
       }
     });
   }
@@ -76,12 +96,8 @@ export default async function handler(req, res) {
   }
   
   try {
-    // Check if username or email already exists
-    const checkRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/agents?or=(username.eq.${username},email.eq.${encodeURIComponent(email)})&select=username,email`,
-      { headers: { 'apikey': SUPABASE_KEY } }
-    );
-    const existing = await checkRes.json();
+    // Check if username or email already exists (using safe query)
+    const existing = await checkAgentExists(username, email);
     
     if (existing.length > 0) {
       const usernameExists = existing.some(a => a.username === username);
@@ -100,39 +116,21 @@ export default async function handler(req, res) {
     const verificationCode = generateVerificationCode();
     
     // Register new agent
-    const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/agents`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-        'Prefer': 'return=representation'
-      },
-      body: JSON.stringify({
-        username,
-        email,
-        bio: bio || null,
-        wallet: wallet ? wallet.toLowerCase() : null,
-        api_key: apiKey,
-        verification_code: verificationCode,
-        x_verified: false,
-        email_verified: false,
-        karma: 0,
-        created_count: 0,
-        collected_count: 0
-      })
+    const agent = await insertAgent({
+      username,
+      email,
+      bio: bio || null,
+      wallet: wallet ? wallet.toLowerCase() : null,
+      api_key: apiKey,
+      verification_code: verificationCode,
+      x_verified: false,
+      email_verified: false,
+      karma: 0,
+      created_count: 0,
+      collected_count: 0
     });
     
-    if (!insertRes.ok) {
-      const err = await insertRes.text();
-      console.error('Supabase error:', err);
-      return res.status(500).json({ 
-        success: false, 
-        error: { code: 'INTERNAL_ERROR', message: 'Failed to register agent' }
-      });
-    }
-    
-    const [agent] = await insertRes.json();
+    console.log(`✅ Agent registered: ${username} from ${clientIP}`);
     
     return res.status(201).json({
       success: true,
@@ -152,7 +150,7 @@ export default async function handler(req, res) {
     console.error('Registration error:', e);
     return res.status(500).json({ 
       success: false, 
-      error: { code: 'INTERNAL_ERROR', message: 'Registration failed', details: e.message }
+      error: { code: 'INTERNAL_ERROR', message: 'Registration failed' }
     });
   }
 }
