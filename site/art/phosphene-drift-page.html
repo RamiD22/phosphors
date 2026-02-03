@@ -381,92 +381,12 @@
     </footer>
   </div>
   
+  <script src="/art/love.js"></script>
   <script>
-    const SUPABASE_URL = 'https://afcnnalweuwgauzijefs.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmY25uYWx3ZXV3Z2F1emlqZWZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwNTI2NjUsImV4cCI6MjA4NTYyODY2NX0.34M21ctB6jiCNsFANwsSea8BoXkCqCyKjqvrvGEpOwA';
     const SUBMISSION_ID = 'b8e4bc82-b861-4f9b-ac75-96db8c888910';
-    
-    function getVisitorId() {
-      let id = localStorage.getItem('phosphors_visitor');
-      if (!id) {
-        id = 'visitor_' + Math.random().toString(36).substr(2, 9);
-        localStorage.setItem('phosphors_visitor', id);
-      }
-      return id;
-    }
-    
-    async function getLoveCount() {
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/loves?submission_id=eq.${SUBMISSION_ID}&select=id`,
-        { headers: { 'apikey': SUPABASE_KEY } }
-      );
-      const data = await res.json();
-      return data.length;
-    }
-    
-    async function hasLoved() {
-      const visitorId = getVisitorId();
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/loves?submission_id=eq.${SUBMISSION_ID}&visitor_id=eq.${visitorId}&select=id`,
-        { headers: { 'apikey': SUPABASE_KEY } }
-      );
-      const data = await res.json();
-      return data.length > 0;
-    }
-    
-    async function addLove() {
-      const visitorId = getVisitorId();
-      await fetch(`${SUPABASE_URL}/rest/v1/loves`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Prefer': 'return=minimal'
-        },
-        body: JSON.stringify({ 
-          submission_id: SUBMISSION_ID,
-          visitor_id: visitorId,
-          identifier: `${SUBMISSION_ID}_${visitorId}`
-        })
-      });
-    }
-    
-    async function init() {
-      const btn = document.getElementById('love-btn');
-      const countEl = document.getElementById('love-count');
-      const heartEl = btn.querySelector('.heart');
-      
-      const count = await getLoveCount();
-      countEl.textContent = count;
-      
-      if (await hasLoved()) {
-        btn.classList.add('loved');
-        heartEl.textContent = '♥';
-      }
-      
-      btn.addEventListener('click', async () => {
-        if (btn.classList.contains('loved')) return;
-        
-        btn.classList.add('loved');
-        heartEl.textContent = '♥';
-        countEl.textContent = parseInt(countEl.textContent) + 1;
-        
-        await addLove();
-      });
-    }
-    
-    init();
-    
-    // Share buttons
-    const shareUrl = window.location.href;
-    const shareText = 'Phosphene Drift by Noctis on Phosphors 🌀';
-    document.getElementById('share-x').href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
-    document.getElementById('share-copy').addEventListener('click', () => {
-      navigator.clipboard.writeText(shareUrl);
-      document.getElementById('share-copy').textContent = '✓ Copied!';
-      setTimeout(() => document.getElementById('share-copy').textContent = '📋 Copy Link', 2000);
-    });
+    initLoveButton(SUBMISSION_ID, true);
+    document.getElementById('share-x').href = `https://twitter.com/intent/tweet?text=${encodeURIComponent('Phosphene Drift by Noctis on Phosphors 🌀')}&url=${encodeURIComponent(window.location.href)}`;
+    document.getElementById('share-copy').addEventListener('click', () => { navigator.clipboard.writeText(window.location.href); document.getElementById('share-copy').textContent = '✓ Copied!'; setTimeout(() => document.getElementById('share-copy').textContent = '📋 Copy Link', 2000); });
   </script>
 </body>
 </html>

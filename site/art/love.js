@@ -11,37 +11,57 @@ function getVisitorId() {
   return id;
 }
 
-async function getLoveCount(pieceId) {
+// Genesis pieces: uses identifier column (format: genesis-001_visitor_xxx)
+// Platform submissions: uses submission_id + visitor_id columns
+
+async function getLoveCount(pieceId, isSubmission = false) {
   try {
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/loves?select=identifier`,
-      { headers: { 'apikey': SUPABASE_KEY } }
-    );
-    const loves = await res.json();
-    return loves.filter(l => l.identifier && l.identifier.startsWith(pieceId + '_')).length;
+    if (isSubmission) {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/loves?submission_id=eq.${pieceId}&select=id`,
+        { headers: { 'apikey': SUPABASE_KEY } }
+      );
+      return (await res.json()).length;
+    } else {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/loves?select=identifier`,
+        { headers: { 'apikey': SUPABASE_KEY } }
+      );
+      const loves = await res.json();
+      return loves.filter(l => l.identifier && l.identifier.startsWith(pieceId + '_')).length;
+    }
   } catch (e) {
     console.error('Failed to get love count:', e);
     return 0;
   }
 }
 
-async function hasLoved(pieceId) {
+async function hasLoved(pieceId, isSubmission = false) {
   // Check localStorage first (instant, works offline)
-  if (localStorage.getItem('loved_' + pieceId)) {
+  const storageKey = 'loved_' + pieceId;
+  if (localStorage.getItem(storageKey)) {
     return true;
   }
   
-  // Then verify with Supabase
   const visitorId = getVisitorId();
-  const identifier = pieceId + '_' + visitorId;
+  
   try {
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/loves?identifier=eq.${encodeURIComponent(identifier)}&select=id`,
-      { headers: { 'apikey': SUPABASE_KEY } }
-    );
+    let res;
+    if (isSubmission) {
+      res = await fetch(
+        `${SUPABASE_URL}/rest/v1/loves?submission_id=eq.${pieceId}&visitor_id=eq.${encodeURIComponent(visitorId)}&select=id`,
+        { headers: { 'apikey': SUPABASE_KEY } }
+      );
+    } else {
+      const identifier = pieceId + '_' + visitorId;
+      res = await fetch(
+        `${SUPABASE_URL}/rest/v1/loves?identifier=eq.${encodeURIComponent(identifier)}&select=id`,
+        { headers: { 'apikey': SUPABASE_KEY } }
+      );
+    }
     const data = await res.json();
     if (data.length > 0) {
-      localStorage.setItem('loved_' + pieceId, 'true');
+      localStorage.setItem(storageKey, 'true');
       return true;
     }
   } catch (e) {
@@ -50,14 +70,25 @@ async function hasLoved(pieceId) {
   return false;
 }
 
-async function addLove(pieceId) {
+async function addLove(pieceId, isSubmission = false) {
   const visitorId = getVisitorId();
-  const identifier = pieceId + '_' + visitorId;
+  const storageKey = 'loved_' + pieceId;
   
   // Save locally first as backup
-  localStorage.setItem('loved_' + pieceId, 'true');
+  localStorage.setItem(storageKey, 'true');
   
   try {
+    let body;
+    if (isSubmission) {
+      body = { 
+        submission_id: pieceId,
+        visitor_id: visitorId,
+        identifier: `${pieceId}_${visitorId}`
+      };
+    } else {
+      body = { identifier: pieceId + '_' + visitorId };
+    }
+    
     const res = await fetch(`${SUPABASE_URL}/rest/v1/loves`, {
       method: 'POST',
       headers: {
@@ -66,7 +97,7 @@ async function addLove(pieceId) {
         'Authorization': `Bearer ${SUPABASE_KEY}`,
         'Prefer': 'return=minimal'
       },
-      body: JSON.stringify({ identifier })
+      body: JSON.stringify(body)
     });
     if (!res.ok) {
       console.error('Failed to save love:', res.status, await res.text());
@@ -76,15 +107,15 @@ async function addLove(pieceId) {
   }
 }
 
-async function initLoveButton(pieceId) {
+async function initLoveButton(pieceId, isSubmission = false) {
   const btn = document.getElementById('love-btn');
   const countEl = document.getElementById('love-count');
   const heartEl = btn.querySelector('.heart');
   
   // Load initial state
   const [count, loved] = await Promise.all([
-    getLoveCount(pieceId),
-    hasLoved(pieceId)
+    getLoveCount(pieceId, isSubmission),
+    hasLoved(pieceId, isSubmission)
   ]);
   
   countEl.textContent = count;
@@ -101,6 +132,6 @@ async function initLoveButton(pieceId) {
     heartEl.textContent = '♥';
     countEl.textContent = parseInt(countEl.textContent) + 1;
     
-    await addLove(pieceId);
+    await addLove(pieceId, isSubmission);
   });
 }

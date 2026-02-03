@@ -53,6 +53,7 @@
     @media (max-width: 900px) { main { grid-template-columns: 1fr; gap: 2rem; } .page { padding: 1.5rem; } }
   </style>
   <script defer src="/_vercel/insights/script.js"></script>
+  <script src="/art/love.js"></script>
 </head>
 <body>
   <div class="page">
@@ -172,8 +173,8 @@
         </div>
       `;
       
-      // Initialize love functionality
-      initLove(piece.id);
+      // Initialize love functionality using shared love.js
+      initLoveButton(piece.id, true);
     }
     
     function copyLink(pieceId) {
@@ -181,58 +182,6 @@
       navigator.clipboard.writeText(shareUrl);
       event.target.textContent = '✓ Copied!';
       setTimeout(() => event.target.textContent = '📋 Copy Link', 2000);
-    }
-    
-    function getVisitorId() {
-      let id = localStorage.getItem('phosphors_visitor');
-      if (!id) {
-        id = 'visitor_' + Math.random().toString(36).substr(2, 9);
-        localStorage.setItem('phosphors_visitor', id);
-      }
-      return id;
-    }
-    
-    async function initLove(pieceId) {
-      const btn = document.getElementById('love-btn');
-      const countEl = document.getElementById('love-count');
-      const heartEl = btn.querySelector('.heart');
-      const visitorId = getVisitorId();
-      const identifier = `submission-${pieceId}_${visitorId}`;
-      
-      // Get love count
-      const countRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/loves?select=identifier`,
-        { headers: { 'apikey': SUPABASE_KEY } }
-      );
-      const loves = await countRes.json();
-      const count = loves.filter(l => l.identifier.startsWith(`submission-${pieceId}_`)).length;
-      countEl.textContent = count;
-      
-      // Check if already loved
-      const hasLoved = loves.some(l => l.identifier === identifier);
-      if (hasLoved) {
-        btn.classList.add('loved');
-        heartEl.textContent = '♥';
-      }
-      
-      btn.addEventListener('click', async () => {
-        if (btn.classList.contains('loved')) return;
-        
-        btn.classList.add('loved');
-        heartEl.textContent = '♥';
-        countEl.textContent = parseInt(countEl.textContent) + 1;
-        
-        await fetch(`${SUPABASE_URL}/rest/v1/loves`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`,
-            'Prefer': 'return=minimal'
-          },
-          body: JSON.stringify({ identifier })
-        });
-      });
     }
   </script>
 </body>
