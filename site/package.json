@@ -11,6 +11,9 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "@vercel/analytics": "^1.6.1"
+    "@coinbase/coinbase-sdk": "^0.25.0",
+    "@vercel/analytics": "^1.6.1",
+    "@x402/core": "^2.2.0",
+    "@x402/evm": "^2.2.0"
   }
 }
