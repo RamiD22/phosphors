@@ -1,0 +1,8 @@
+{
+  "name": "x402-test",
+  "type": "module",
+  "dependencies": {
+    "express": "^4.18.2",
+    "@coinbase/coinbase-sdk": "^0.0.16"
+  }
+}

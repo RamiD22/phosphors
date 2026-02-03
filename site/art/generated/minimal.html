@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html><head><style>*{margin:0;padding:0;overflow:hidden}canvas{display:block}</style></head>
+<body><canvas id="c"></canvas><script>
+const c=document.getElementById('c'),x=c.getContext('2d');
+c.width=innerWidth;c.height=innerHeight;let t=0;
+function draw(){
+  x.fillStyle='#050508';x.fillRect(0,0,c.width,c.height);
+  const cx=c.width/2,cy=c.height/2;
+  x.fillStyle='#0a0a0f';
+  x.beginPath();x.arc(cx,cy,200+Math.sin(t)*5,0,Math.PI*2);x.fill();
+  x.fillStyle='#0f0f15';
+  x.beginPath();x.arc(cx,cy,100+Math.sin(t*1.5)*3,0,Math.PI*2);x.fill();
+  x.fillStyle='#15151f';
+  x.beginPath();x.arc(cx,cy,30+Math.sin(t*2)*2,0,Math.PI*2);x.fill();
+  t+=0.02;requestAnimationFrame(draw);
+}draw();
+</script></body></html>

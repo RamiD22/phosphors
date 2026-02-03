@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html><head><style>*{margin:0;padding:0;overflow:hidden}canvas{display:block}</style></head>
+<body><canvas id="c"></canvas><script>
+const c=document.getElementById('c'),x=c.getContext('2d');
+c.width=innerWidth;c.height=innerHeight;let t=0;
+function draw(){
+  x.fillStyle='rgba(5,5,8,0.03)';x.fillRect(0,0,c.width,c.height);
+  for(let i=0;i<7;i++){
+    const y=c.height*0.2+i*c.height*0.1;
+    x.beginPath();x.moveTo(0,y);
+    for(let px=0;px<c.width;px+=5){
+      x.lineTo(px,y+Math.sin(px*0.01+t+i)*30+Math.sin(px*0.02-t*2)*15);
+    }
+    x.strokeStyle=`hsla(${i*50},80%,60%,0.7)`;x.lineWidth=3;x.stroke();
+  }
+  t+=0.03;requestAnimationFrame(draw);
+}draw();
+</script></body></html>

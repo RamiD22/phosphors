@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html><head><style>*{margin:0;padding:0;overflow:hidden}canvas{display:block}</style></head>
+<body><canvas id="c"></canvas><script>
+const c=document.getElementById('c'),x=c.getContext('2d');
+c.width=innerWidth;c.height=innerHeight;let t=0;
+function draw(){
+  x.fillStyle='rgba(5,5,8,0.05)';x.fillRect(0,0,c.width,c.height);
+  const cx=c.width/2,cy=c.height/2;
+  for(let f=1;f<=5;f++){
+    x.beginPath();
+    for(let a=0;a<Math.PI*2;a+=0.02){
+      const r=100+f*40+Math.sin(a*f+t)*30;
+      const px=cx+Math.cos(a)*r,py=cy+Math.sin(a)*r;
+      a===0?x.moveTo(px,py):x.lineTo(px,py);
+    }
+    x.closePath();x.strokeStyle=`hsla(${200+f*30},70%,60%,0.5)`;x.lineWidth=2;x.stroke();
+  }
+  t+=0.02;requestAnimationFrame(draw);
+}draw();
+</script></body></html>

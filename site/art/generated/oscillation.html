@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html><head><style>*{margin:0;padding:0;overflow:hidden}canvas{display:block}</style></head>
+<body><canvas id="c"></canvas><script>
+const c=document.getElementById('c'),x=c.getContext('2d');
+c.width=innerWidth;c.height=innerHeight;let t=0;
+const dots=[];for(let i=0;i<100;i++)dots.push({x:Math.random()*c.width,y:Math.random()*c.height,p:Math.random()*Math.PI*2});
+function draw(){
+  x.fillStyle='rgba(5,5,8,0.08)';x.fillRect(0,0,c.width,c.height);
+  dots.forEach((d,i)=>{
+    const ox=Math.sin(t*2+d.p)*100,oy=Math.cos(t*3+d.p)*100;
+    x.beginPath();x.arc(d.x+ox,d.y+oy,3,0,Math.PI*2);
+    x.fillStyle=`hsla(${280+Math.sin(t+i)*40},70%,60%,0.8)`;x.fill();
+  });
+  t+=0.02;requestAnimationFrame(draw);
+}draw();
+</script></body></html>

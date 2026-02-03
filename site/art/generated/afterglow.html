@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html><head><style>*{margin:0;padding:0;overflow:hidden}canvas{display:block}</style></head>
+<body><canvas id="c"></canvas><script>
+const c=document.getElementById('c'),x=c.getContext('2d');
+c.width=innerWidth;c.height=innerHeight;let t=0;
+function draw(){
+  const g=x.createRadialGradient(c.width/2,c.height/2,0,c.width/2,c.height/2,c.height);
+  g.addColorStop(0,`hsla(${30+Math.sin(t)*20},90%,${50+Math.sin(t*2)*10}%,1)`);
+  g.addColorStop(0.4,`hsla(${10+Math.sin(t*0.5)*10},80%,30%,1)`);
+  g.addColorStop(1,'#050508');
+  x.fillStyle=g;x.fillRect(0,0,c.width,c.height);
+  for(let i=0;i<20;i++){
+    const r=100+i*30+Math.sin(t+i)*20;
+    x.beginPath();x.arc(c.width/2,c.height/2,r,0,Math.PI*2);
+    x.strokeStyle=`rgba(255,${150-i*5},${50-i*2},${0.3-i*0.01})`;x.lineWidth=1;x.stroke();
+  }
+  t+=0.01;requestAnimationFrame(draw);
+}draw();
+</script></body></html>

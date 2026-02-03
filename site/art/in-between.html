@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The In-Between</title>
+  <style>
+    * { margin: 0; padding: 0; }
+    body { background: #000; overflow: hidden; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+    
+    let time = 0;
+    
+    function drawDoorway(cx, cy, width, height, depth, t) {
+      const frames = 12;
+      
+      for (let i = frames; i >= 0; i--) {
+        const scale = 1 - (i / frames) * 0.7;
+        const pulse = Math.sin(t * 0.002 + i * 0.3) * 0.02;
+        const w = width * (scale + pulse);
+        const h = height * (scale + pulse);
+        
+        const offsetX = Math.sin(t * 0.001 + i * 0.2) * (i * 2);
+        const offsetY = Math.cos(t * 0.0015 + i * 0.15) * (i * 1.5);
+        
+        const x = cx - w / 2 + offsetX;
+        const y = cy - h / 2 + offsetY;
+        
+        // Frame glow
+        const alpha = 0.4 - (i / frames) * 0.3;
+        const hue = 200 + i * 8 + Math.sin(t * 0.001) * 20;
+        
+        ctx.strokeStyle = `hsla(${hue}, 50%, 60%, ${alpha})`;
+        ctx.lineWidth = 2 - i * 0.1;
+        
+        // Draw frame with rounded corners
+        const radius = 5 + i * 2;
+        ctx.beginPath();
+        ctx.roundRect(x, y, w, h, radius);
+        ctx.stroke();
+        
+        // Inner glow
+        if (i < 3) {
+          ctx.fillStyle = `hsla(${hue + 20}, 40%, 50%, ${0.02})`;
+          ctx.fill();
+        }
+      }
+      
+      // Center light
+      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.min(width, height) * 0.2);
+      grad.addColorStop(0, `hsla(${180 + Math.sin(t * 0.001) * 20}, 60%, 80%, 0.3)`);
+      grad.addColorStop(0.5, `hsla(200, 50%, 60%, 0.1)`);
+      grad.addColorStop(1, 'transparent');
+      
+      ctx.fillStyle = grad;
+      ctx.fillRect(cx - width * 0.3, cy - height * 0.3, width * 0.6, height * 0.6);
+    }
+    
+    function drawFloatingDust(t) {
+      const w = canvas.width;
+      const h = canvas.height;
+      
+      for (let i = 0; i < 50; i++) {
+        const seed = i * 12345.6789;
+        const x = ((Math.sin(seed) + 1) / 2 * w + Math.sin(t * 0.0005 + i * 0.1) * 100) % w;
+        const y = ((Math.cos(seed) + 1) / 2 * h + t * 0.02 * (0.5 + (i % 3) * 0.3)) % h;
+        const size = 0.5 + Math.sin(seed * 2) * 0.3;
+        const alpha = 0.2 + Math.sin(t * 0.003 + i) * 0.15;
+        
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(200, 30%, 80%, ${alpha})`;
+        ctx.fill();
+      }
+    }
+    
+    function animate() {
+      time++;
+      
+      // Dark fade
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+      
+      drawFloatingDust(time);
+      drawDoorway(cx, cy, 300, 500, 200, time);
+      
+      requestAnimationFrame(animate);
+    }
+    
+    animate();
+  </script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html><head><style>*{margin:0;padding:0;overflow:hidden}canvas{display:block}</style></head>
+<body><canvas id="c"></canvas><script>
+const c=document.getElementById('c'),x=c.getContext('2d');
+c.width=innerWidth;c.height=innerHeight;let t=0;
+function draw(){
+  x.fillStyle='#050508';x.fillRect(0,0,c.width,c.height);
+  const cx=c.width/2,cy=c.height/2;
+  for(let i=0;i<60;i++){
+    const a=i*Math.PI/30+t,r=100+i*4,s=5+i*0.5;
+    const px=cx+Math.cos(a)*r,py=cy+Math.sin(a)*r;
+    x.save();x.translate(px,py);x.rotate(a+t*2);
+    x.fillStyle=`hsla(${200+i*2},70%,60%,${0.8-i*0.01})`;
+    x.beginPath();
+    for(let j=0;j<4;j++){const ja=j*Math.PI/2;x.lineTo(Math.cos(ja)*s,Math.sin(ja)*s);}
+    x.closePath();x.fill();x.restore();
+  }
+  t+=0.01;requestAnimationFrame(draw);
+}draw();
+</script></body></html>

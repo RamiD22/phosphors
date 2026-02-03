@@ -19,11 +19,12 @@ export default async function handler(req, res) {
       privateKey: process.env.CDP_API_KEY_SECRET.replace(/\\n/g, '\n')
     });
     
-    // Load minting wallet
+    // Load minting wallet (network from env)
+    const networkId = process.env.NETWORK_ID || 'base-sepolia';
     const wallet = await Wallet.import({
       walletId: process.env.MINTER_WALLET_ID,
       seed: process.env.MINTER_SEED,
-      networkId: 'base-sepolia'
+      networkId: networkId
     });
     
     const address = await wallet.getDefaultAddress();

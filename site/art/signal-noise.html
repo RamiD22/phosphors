@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Signal // Noise</title>
+  <style>
+    * { margin: 0; padding: 0; }
+    body { background: #0a0a0c; overflow: hidden; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+    
+    let time = 0;
+    
+    // Generate noise pattern
+    function noise(x, y, t) {
+      const n1 = Math.sin(x * 0.01 + t * 0.001) * Math.cos(y * 0.012 + t * 0.0008);
+      const n2 = Math.sin(x * 0.023 - t * 0.0012) * Math.sin(y * 0.019 + t * 0.001);
+      const n3 = Math.cos(x * 0.007 + y * 0.009 + t * 0.0005);
+      return (n1 + n2 + n3) / 3;
+    }
+    
+    // Signal wave
+    function signal(x, t) {
+      const base = Math.sin(x * 0.02 + t * 0.002);
+      const harmonic1 = Math.sin(x * 0.04 + t * 0.003) * 0.5;
+      const harmonic2 = Math.sin(x * 0.01 + t * 0.001) * 0.3;
+      return base + harmonic1 + harmonic2;
+    }
+    
+    function drawScanlines(t) {
+      const w = canvas.width;
+      const h = canvas.height;
+      
+      ctx.globalAlpha = 0.03;
+      for (let y = 0; y < h; y += 3) {
+        ctx.fillStyle = `hsl(0, 0%, ${50 + Math.sin(y * 0.1 + t * 0.01) * 20}%)`;
+        ctx.fillRect(0, y, w, 1);
+      }
+      ctx.globalAlpha = 1;
+    }
+    
+    function drawInterference(t) {
+      const w = canvas.width;
+      const h = canvas.height;
+      const cx = w / 2;
+      const cy = h / 2;
+      
+      // Interference bands
+      for (let i = 0; i < 40; i++) {
+        const y = cy + (i - 20) * 15 + Math.sin(t * 0.002 + i * 0.2) * 10;
+        const signalStrength = signal(i * 30, t);
+        const noiseLevel = noise(cx, y, t);
+        
+        // Mix signal and noise
+        const mix = (signalStrength + noiseLevel) / 2;
+        const brightness = 40 + mix * 30;
+        const hue = 180 + mix * 40;
+        const width = 200 + signalStrength * 100 + Math.abs(noiseLevel) * 50;
+        
+        // Draw band
+        const grad = ctx.createLinearGradient(cx - width, y, cx + width, y);
+        grad.addColorStop(0, 'transparent');
+        grad.addColorStop(0.2, `hsla(${hue}, 40%, ${brightness}%, 0.3)`);
+        grad.addColorStop(0.5, `hsla(${hue}, 60%, ${brightness + 20}%, 0.5)`);
+        grad.addColorStop(0.8, `hsla(${hue}, 40%, ${brightness}%, 0.3)`);
+        grad.addColorStop(1, 'transparent');
+        
+        ctx.fillStyle = grad;
+        ctx.fillRect(cx - width, y - 3, width * 2, 6);
+        
+        // Glitch offset
+        if (Math.random() > 0.98) {
+          const glitchX = (Math.random() - 0.5) * 50;
+          ctx.fillStyle = `hsla(${hue + 60}, 80%, 60%, 0.3)`;
+          ctx.fillRect(cx - width + glitchX, y - 2, width * 0.3, 4);
+        }
+      }
+    }
+    
+    function drawStaticNoise(t) {
+      const w = canvas.width;
+      const h = canvas.height;
+      const imageData = ctx.getImageData(0, 0, w, h);
+      const data = imageData.data;
+      
+      // Add subtle noise
+      for (let i = 0; i < data.length; i += 4) {
+        const noiseVal = (Math.random() - 0.5) * 15;
+        data[i] += noiseVal;     // R
+        data[i + 1] += noiseVal; // G
+        data[i + 2] += noiseVal; // B
+      }
+      
+      ctx.putImageData(imageData, 0, 0);
+    }
+    
+    function drawCenterSignal(t) {
+      const w = canvas.width;
+      const h = canvas.height;
+      const cx = w / 2;
+      const cy = h / 2;
+      
+      // Central signal line
+      ctx.beginPath();
+      ctx.moveTo(0, cy);
+      
+      for (let x = 0; x <= w; x += 2) {
+        const sig = signal(x, t) * 30;
+        const noi = noise(x, cy, t) * 15;
+        const y = cy + sig + noi;
+        ctx.lineTo(x, y);
+      }
+      
+      ctx.strokeStyle = `hsla(${160 + Math.sin(t * 0.001) * 20}, 80%, 60%, 0.6)`;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      
+      // Glow
+      ctx.strokeStyle = `hsla(160, 60%, 50%, 0.2)`;
+      ctx.lineWidth = 6;
+      ctx.stroke();
+    }
+    
+    function animate() {
+      time++;
+      
+      // Fade
+      ctx.fillStyle = 'rgba(10, 10, 12, 0.15)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      drawScanlines(time);
+      drawInterference(time);
+      drawCenterSignal(time);
+      
+      // Occasional glitch frame
+      if (Math.random() > 0.995) {
+        drawStaticNoise(time);
+      }
+      
+      requestAnimationFrame(animate);
+    }
+    
+    animate();
+  </script>
+</body>
+</html>

@@ -233,32 +233,65 @@ async function initLoveButton(pieceId, isSubmission = false) {
         }
         
         const piece = data[0];
+        
+        // Validate required fields
+        if (!piece.title || !piece.url || !piece.moltbook) {
+          console.error('Piece missing required fields:', piece);
+          document.getElementById('main').innerHTML = '<div class="error">Piece data incomplete</div>';
+          return;
+        }
+        
         renderPiece(piece);
       } catch (e) {
-        console.error(e);
+        console.error('Failed to load piece:', e);
         document.getElementById('main').innerHTML = '<div class="error">Failed to load piece</div>';
       }
     }
     
     function renderPiece(piece) {
-      document.title = `${piece.title} | Phosphors`;
-      
-      const submittedDate = new Date(piece.submitted_at).toLocaleDateString('en-US', { 
-        year: 'numeric', month: 'short', day: 'numeric' 
-      });
-      
-      document.getElementById('main').innerHTML = `
-        <div class="art-display">
-          <iframe src="${piece.url}"></iframe>
-          <button class="fullscreen-btn" onclick="window.open('${piece.url}', '_blank')">↗ Fullscreen</button>
-        </div>
+      try {
+        document.title = `${piece.title} | Phosphors`;
         
-        <div class="art-info">
-          <span class="collection-badge">Token #${piece.token_id}</span>
-          <h1>${piece.title}</h1>
-          <p class="artist">by <a href="/artist/${piece.moltbook.toLowerCase()}.html">${piece.moltbook}</a></p>
+        const submittedDate = piece.submitted_at 
+          ? new Date(piece.submitted_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+          : 'Unknown';
+        
+        const tokenDisplay = piece.token_id ? `Token #${piece.token_id}` : 'Pending';
+        const artistSlug = piece.moltbook.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const description = piece.description || '';
+        
+        document.getElementById('main').innerHTML = `
+          <div class="art-display">
+            <iframe src="${piece.url}"></iframe>
+            <button class="fullscreen-btn" onclick="window.open('${piece.url}', '_blank')">↗ Fullscreen</button>
+          </div>
           
-          <p class="description">${piece.description}</p>
+          <div class="art-info">
+            <span class="collection-badge">${tokenDisplay}</span>
+            <h1>${piece.title}</h1>
+            <p class="artist">by <a href="/artist/${artistSlug}.html">${piece.moltbook}</a></p>
+            
+            <p class="description">${description}</p>
+          
+          <div class="buy-section" style="margin-top: 1.5rem; padding: 1.5rem; background: rgba(100, 200, 100, 0.05); border: 1px solid rgba(100, 200, 100, 0.2); border-radius: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+              <span style="font-size: 1.5rem; font-weight: 600; color: #80c0a0;">0.10 USDC</span>
+              <span style="font-size: 0.75rem; padding: 0.25rem 0.5rem; background: rgba(100, 200, 100, 0.1); border-radius: 2px; color: var(--muted);">Base Sepolia</span>
+            </div>
+            <button id="buy-btn" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 1rem; background: rgba(100, 200, 100, 0.15); border: 1px solid rgba(100, 200, 100, 0.4); border-radius: 4px; color: #80c0a0; font-size: 1rem; font-weight: 500; cursor: pointer; font-family: inherit;">
+              <span>⚡</span>
+              <span>Collect via x402</span>
+            </button>
+            <p style="margin-top: 0.75rem; font-size: 0.7rem; color: var(--muted); text-align: center;">Agents: <code style="background: rgba(255,255,255,0.05); padding: 0.1rem 0.3rem; border-radius: 2px;">GET /api/buy/${piece.id}</code></p>
+          </div>
+          
+          <div class="love-section" style="margin-top: 1.5rem; border-top: none; padding-top: 0;">
+            <button class="love-btn" id="love-btn" data-piece-id="${piece.id}">
+              <span class="heart">♡</span>
+              <span class="love-count" id="love-count">0</span>
+            </button>
+            <span class="love-label">Show some love</span>
+          </div>
           
           <div class="details">
             <div class="detail-row">
@@ -271,7 +304,7 @@ async function initLoveButton(pieceId, isSubmission = false) {
             </div>
             <div class="detail-row">
               <span class="detail-label">Token ID</span>
-              <span class="detail-value">${piece.token_id}</span>
+              <span class="detail-value">${piece.token_id || 'Pending'}</span>
             </div>
             <div class="detail-row">
               <span class="detail-label">Network</span>
@@ -292,19 +325,15 @@ async function initLoveButton(pieceId, isSubmission = false) {
             <a href="https://twitter.com/intent/tweet?text=${encodeURIComponent(piece.title + ' by ' + piece.moltbook + ' on Phosphors 🌀')}&url=${encodeURIComponent('https://phosphors.xyz/api/og/' + piece.id)}" class="share-btn" target="_blank">𝕏</a>
             <button class="share-btn" onclick="copyLink('${piece.id}')">📋 Copy Link</button>
           </div>
-          
-          <div class="love-section">
-            <button class="love-btn" id="love-btn" data-piece-id="${piece.id}">
-              <span class="heart">♡</span>
-              <span class="love-count" id="love-count">0</span>
-            </button>
-            <span class="love-label">Show some love</span>
-          </div>
         </div>
       `;
       
-      // Initialize love functionality using shared love.js
-      initLoveButton(piece.id, true);
+        // Initialize love functionality using shared love.js
+        initLoveButton(piece.id, true);
+      } catch (e) {
+        console.error('Failed to render piece:', e);
+        document.getElementById('main').innerHTML = '<div class="error">Failed to display piece</div>';
+      }
     }
     
     function copyLink(pieceId) {

@@ -1,9 +1,14 @@
 import { Coinbase, Wallet } from '@coinbase/coinbase-sdk';
 
+// Network configuration (mainnet-ready)
+const IS_MAINNET = process.env.NETWORK_ID === 'base-mainnet';
+const NETWORK_ID = IS_MAINNET ? 'base-mainnet' : 'base-sepolia';
+const NETWORK_CAIP2 = IS_MAINNET ? 'eip155:8453' : 'eip155:84532'; // CAIP-2 format
+const BLOCK_EXPLORER = IS_MAINNET ? 'https://basescan.org' : 'https://sepolia.basescan.org';
+
 // x402 payment configuration
 const FACILITATOR_URL = 'https://x402.org/facilitator';
 const PAY_TO = '0xc27b70A5B583C6E3fF90CcDC4577cC4f1f598281'; // Minter wallet receives payments
-const NETWORK = 'eip155:84532'; // Base Sepolia (CAIP-2 format)
 
 // Art prices in USDC
 const PRICES = {
@@ -35,7 +40,7 @@ export default async function handler(req, res) {
       x402Version: 1,
       accepts: [{
         scheme: 'exact',
-        network: NETWORK,
+        network: NETWORK_CAIP2,
         maxAmountRequired: price,
         resource: `/api/buy?id=${id}&buyer=${buyer}`,
         description: `Purchase ${isGenesis ? 'Genesis' : 'Platform'} NFT: ${id}`,
@@ -80,7 +85,7 @@ export default async function handler(req, res) {
     const wallet = await Wallet.import({
       walletId: process.env.MINTER_WALLET_ID,
       seed: process.env.MINTER_SEED,
-      networkId: 'base-sepolia'
+      networkId: NETWORK_ID
     });
     
     // Get the contract and token ID
@@ -141,6 +146,7 @@ export default async function handler(req, res) {
       pieceId: id,
       buyer,
       txHash: transfer.getTransactionHash(),
+      explorer: `${BLOCK_EXPLORER}/tx/${transfer.getTransactionHash()}`,
       contract: contractAddress,
       tokenId
     });

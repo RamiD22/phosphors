@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html><head><style>*{margin:0;padding:0;overflow:hidden}canvas{display:block}</style></head>
+<body><canvas id="c"></canvas><script>
+const c=document.getElementById('c'),x=c.getContext('2d');
+c.width=innerWidth;c.height=innerHeight;let t=0;
+function draw(){
+  x.fillStyle='#020203';x.fillRect(0,0,c.width,c.height);
+  for(let i=0;i<20;i++){
+    const s=50+i*30;
+    x.save();x.translate(c.width/2,c.height/2);x.rotate(t*0.1+i*0.1);
+    x.fillStyle=`rgba(${5+i},${5+i},${8+i},0.8)`;
+    x.fillRect(-s/2,-s/2,s,s);
+    x.restore();
+  }
+  t+=0.01;requestAnimationFrame(draw);
+}draw();
+</script></body></html>

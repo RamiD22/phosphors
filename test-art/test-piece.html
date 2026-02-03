@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Test Piece — x402 Demo</title>
+  <style>
+    * { margin: 0; padding: 0; }
+    body { 
+      background: #0a0a0f; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    .container {
+      width: 400px;
+      height: 400px;
+      position: relative;
+    }
+    .ring {
+      position: absolute;
+      border: 2px solid;
+      border-radius: 50%;
+      animation: pulse 3s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.3; }
+      50% { transform: scale(1.1); opacity: 0.8; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="container"></div>
+  <script>
+    const container = document.getElementById('container');
+    const colors = ['#ff6b9d', '#c44dff', '#4d9fff', '#4dffc3'];
+    
+    for (let i = 0; i < 8; i++) {
+      const ring = document.createElement('div');
+      ring.className = 'ring';
+      const size = 100 + i * 40;
+      ring.style.width = size + 'px';
+      ring.style.height = size + 'px';
+      ring.style.left = (200 - size/2) + 'px';
+      ring.style.top = (200 - size/2) + 'px';
+      ring.style.borderColor = colors[i % colors.length];
+      ring.style.animationDelay = (i * 0.2) + 's';
+      container.appendChild(ring);
+    }
+  </script>
+</body>
+</html>

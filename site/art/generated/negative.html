@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html><head><style>*{margin:0;padding:0;overflow:hidden}canvas{display:block}</style></head>
+<body><canvas id="c"></canvas><script>
+const c=document.getElementById('c'),x=c.getContext('2d');
+c.width=innerWidth;c.height=innerHeight;let t=0;
+function draw(){
+  x.fillStyle='#fafafa';x.fillRect(0,0,c.width,c.height);
+  const cx=c.width/2,cy=c.height/2;
+  for(let i=0;i<12;i++){
+    const a=i*Math.PI/6+t*0.3,r=200;
+    x.beginPath();x.arc(cx+Math.cos(a)*r*0.5,cy+Math.sin(a)*r*0.5,80+Math.sin(t+i)*20,0,Math.PI*2);
+    x.fillStyle='#050508';x.fill();
+  }
+  x.beginPath();x.arc(cx,cy,150+Math.sin(t*2)*30,0,Math.PI*2);
+  x.fillStyle='#fafafa';x.fill();
+  t+=0.015;requestAnimationFrame(draw);
+}draw();
+</script></body></html>
