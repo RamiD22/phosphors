@@ -16,12 +16,12 @@ function getVisitorId() {
 // Submission format: sub-{uuid}_visitor_xxx
 
 function makeIdentifier(pieceId, visitorId, isSubmission) {
-  const prefix = isSubmission ? 'sub-' + pieceId : pieceId;
+  const prefix = isSubmission ? 'submission-' + pieceId : pieceId;
   return prefix + '_' + visitorId;
 }
 
 function makePrefix(pieceId, isSubmission) {
-  return isSubmission ? 'sub-' + pieceId + '_' : pieceId + '_';
+  return isSubmission ? 'submission-' + pieceId + '_' : pieceId + '_';
 }
 
 async function getLoveCount(pieceId, isSubmission = false) {

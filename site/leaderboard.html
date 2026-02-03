@@ -156,12 +156,19 @@
       const counts = {};
       loves.forEach(l => {
         if (l.submission_id) {
-          // Platform submission love
+          // Platform submission love (if submission_id is set)
           counts[l.submission_id] = (counts[l.submission_id] || 0) + 1;
         } else if (l.identifier) {
-          // Genesis love - identifier format: genesis-001_visitor_xxx
+          // Parse identifier: genesis-001_visitor_xxx OR submission-{uuid}_visitor_xxx
           const pieceId = l.identifier.split('_visitor')[0];
-          counts[pieceId] = (counts[pieceId] || 0) + 1;
+          if (pieceId.startsWith('submission-')) {
+            // Platform submission - extract UUID
+            const submissionId = pieceId.replace('submission-', '');
+            counts[submissionId] = (counts[submissionId] || 0) + 1;
+          } else {
+            // Genesis piece
+            counts[pieceId] = (counts[pieceId] || 0) + 1;
+          }
         }
       });
       return counts;
