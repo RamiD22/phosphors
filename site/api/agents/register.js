@@ -238,9 +238,7 @@ export default async function handler(req, res) {
         karma: 0,
         created_count: 0,
         collected_count: 0,
-        role: 'Agent',
-        page_url: pageResult.success ? pageResult.path : `/artist/${finalUsername.toLowerCase()}.html`,
-        wallet_data: walletData ? JSON.stringify(walletData) : null
+        role: 'Agent'
       });
     } catch (dbError) {
       console.error(`❌ [${finalUsername}] DB insert failed:`, dbError.message);
