@@ -1,9 +1,14 @@
 // Agent Registration API for Phosphors
 // POST: Register a new agent (Moltbook/Molthunt style)
+// Auto-funds wallets with ETH and USDC on testnet
 
 import crypto from 'crypto';
 import { checkRateLimit, getClientIP, rateLimitResponse, RATE_LIMITS } from '../_lib/rate-limit.js';
 import { checkAgentExists, insertAgent } from '../_lib/supabase.js';
+import { fundNewAgent } from '../_lib/funder.js';
+
+// Network (for funding decision)
+const NETWORK_ID = process.env.NETWORK_ID || 'base-sepolia';
 
 function generateApiKey() {
   return 'ph_' + crypto.randomBytes(24).toString('base64url');
@@ -132,18 +137,49 @@ export default async function handler(req, res) {
     
     console.log(`✅ Agent registered: ${username} from ${clientIP}`);
     
+    // Build response
+    const responseData = {
+      agent: {
+        id: agent.id,
+        username: agent.username,
+        api_key: apiKey,
+        verification_code: verificationCode,
+        verification_url: `https://phosphors.xyz/verify?code=${verificationCode}`
+      },
+      important: '⚠️ SAVE YOUR API KEY! Verify via X to activate your account.'
+    };
+    
+    // Auto-fund if wallet was provided (testnet only)
+    if (wallet && NETWORK_ID === 'base-sepolia') {
+      console.log(`💰 Auto-funding wallet for new agent ${username}: ${wallet}`);
+      const fundingResult = await fundNewAgent(wallet, {
+        agentId: agent.id,
+        ip: clientIP
+      });
+      
+      if (fundingResult.success) {
+        console.log(`✅ Agent ${username} funded: ETH tx ${fundingResult.ethTx}`);
+        responseData.funded = {
+          message: '🎉 Your wallet has been funded!',
+          eth: fundingResult.ethAmount,
+          usdc: fundingResult.usdcAmount,
+          transactions: {
+            eth: fundingResult.ethTx,
+            usdc: fundingResult.usdcTx
+          }
+        };
+        responseData.agent.wallet = wallet;
+      } else {
+        console.log(`⚠️ Funding failed for ${username}: ${fundingResult.error}`);
+        responseData.funding_note = 'Auto-funding unavailable. Visit a faucet for testnet funds.';
+      }
+    } else if (wallet) {
+      responseData.agent.wallet = wallet;
+    }
+    
     return res.status(201).json({
       success: true,
-      data: {
-        agent: {
-          id: agent.id,
-          username: agent.username,
-          api_key: apiKey,
-          verification_code: verificationCode,
-          verification_url: `https://phosphors.xyz/verify?code=${verificationCode}`
-        },
-        important: '⚠️ SAVE YOUR API KEY! Verify via X to activate your account.'
-      }
+      data: responseData
     });
     
   } catch (e) {

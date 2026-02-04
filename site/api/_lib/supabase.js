@@ -152,4 +152,43 @@ export async function getRecentPurchases(limit = 20) {
   return response.json();
 }
 
+/**
+ * Log a funding event
+ */
+export async function logFunding(data) {
+  const response = await supabaseRequest('/rest/v1/funding_log', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation'
+    },
+    body: JSON.stringify(data)
+  });
+  
+  // Don't fail if logging fails (funding already happened)
+  if (!response.ok) {
+    console.error('Failed to log funding:', await response.text());
+    return null;
+  }
+  
+  const [log] = await response.json();
+  return log;
+}
+
+/**
+ * Check if a wallet was already funded
+ */
+export async function checkWalletFunded(walletAddress) {
+  const response = await supabaseRequest(
+    `/rest/v1/funding_log?wallet_address=eq.${encodeURIComponent(walletAddress.toLowerCase())}&select=id,funded_at`
+  );
+  
+  if (!response.ok) {
+    return null; // Assume not funded on error
+  }
+  
+  const results = await response.json();
+  return results.length > 0 ? results[0] : null;
+}
+
 export { SUPABASE_URL, SUPABASE_KEY };

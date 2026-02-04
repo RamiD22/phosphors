@@ -11,8 +11,8 @@ const BLOCK_EXPLORER = IS_MAINNET ? 'https://basescan.org' : 'https://sepolia.ba
 const FACILITATOR_URL = 'https://x402.org/facilitator';
 const PAY_TO = process.env.MINTER_WALLET || '0xc27b70A5B583C6E3fF90CcDC4577cC4f1f598281';
 
-// Revenue split (artist gets 90%, platform 10%)
-const ARTIST_SHARE = 0.90;
+// Revenue split (artist gets 100% - we don't take a cut)
+const ARTIST_SHARE = 1.0;
 
 // Supabase config
 const SUPABASE_URL = 'https://afcnnalweuwgauzijefs.supabase.co';

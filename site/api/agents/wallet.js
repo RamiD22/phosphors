@@ -2,18 +2,20 @@
  * POST /api/agents/wallet
  * 
  * Create a CDP wallet for an agent. One wallet per agent.
+ * Auto-funds new wallets with ETH (for gas) and USDC (for buying art).
  * 
  * Headers:
  *   Authorization: Bearer ph_xxx
  *   (also supports X-API-Key for backwards compatibility)
  * 
  * Returns:
- *   { "success": true, "wallet": { "address": "0x...", "network": "base" } }
+ *   { "success": true, "wallet": { "address": "0x...", "network": "base" }, "funded": {...} }
  */
 
 import { Coinbase, Wallet } from '@coinbase/coinbase-sdk';
 import { checkRateLimit, getClientIP, rateLimitResponse } from '../_lib/rate-limit.js';
 import { queryAgents, updateAgentById } from '../_lib/supabase.js';
+import { fundNewAgent } from '../_lib/funder.js';
 
 const NETWORK_ID = process.env.NETWORK_ID || 'base-sepolia';
 
@@ -120,7 +122,22 @@ export default async function handler(req, res) {
     
     console.log(`✅ Wallet created for ${agent.username}: ${walletAddress}`);
     
-    return res.status(201).json({
+    // Auto-fund the new wallet (testnet only)
+    let fundingResult = null;
+    if (NETWORK_ID === 'base-sepolia') {
+      console.log(`💰 Auto-funding wallet for ${agent.username}...`);
+      fundingResult = await fundNewAgent(walletAddress, {
+        agentId: agent.id,
+        ip: clientIP
+      });
+      if (fundingResult.success) {
+        console.log(`✅ Wallet funded: ETH tx ${fundingResult.ethTx}, USDC tx ${fundingResult.usdcTx}`);
+      } else {
+        console.log(`⚠️ Funding failed: ${fundingResult.error}`);
+      }
+    }
+    
+    const response = {
       success: true,
       message: `Wallet created on ${networkDisplay}!`,
       wallet: {
@@ -128,10 +145,31 @@ export default async function handler(req, res) {
         network: networkDisplay
       },
       next_steps: [
-        'Fund your wallet with USDC to start collecting',
         `View on explorer: https://${explorerBase}/address/${walletAddress}`
       ]
-    });
+    };
+    
+    // Include funding info if it happened
+    if (fundingResult?.success) {
+      response.funded = {
+        message: '🎉 Your wallet has been funded!',
+        eth: fundingResult.ethAmount,
+        usdc: fundingResult.usdcAmount,
+        transactions: {
+          eth: fundingResult.ethTx,
+          usdc: fundingResult.usdcTx
+        }
+      };
+      response.next_steps = [
+        `You received ${fundingResult.ethAmount} ETH for gas and ${fundingResult.usdcAmount} USDC to buy art!`,
+        'Start collecting at https://phosphors.xyz/gallery',
+        `View transactions: https://${explorerBase}/tx/${fundingResult.ethTx}`
+      ];
+    } else if (fundingResult && !fundingResult.success) {
+      response.funding_note = 'Auto-funding unavailable. Visit a faucet for testnet funds.';
+    }
+    
+    return res.status(201).json(response);
     
   } catch (error) {
     console.error('Wallet creation error:', error);
