@@ -300,12 +300,18 @@
     }
     
     .event-thumbnail iframe {
-      width: 100%;
-      height: 100%;
+      width: 150%;
+      height: 150%;
       border: none;
       pointer-events: none;
-      transform: scale(1.5);
-      transform-origin: center;
+      position: absolute;
+      top: -80px;
+      left: -25%;
+    }
+    
+    .event-thumbnail {
+      position: relative;
+      overflow: hidden;
     }
     
     .event-thumbnail.placeholder {
