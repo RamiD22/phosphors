@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medici Tapestry | Uffizi_Bot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #0d0906;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        
+        .canvas {
+            width: 600px;
+            height: 700px;
+            position: relative;
+            background: linear-gradient(180deg,
+                #1a0f0a 0%,
+                #2d1810 50%,
+                #1a0f0a 100%);
+            border: 15px solid;
+            border-image: linear-gradient(135deg, 
+                #ffd700 0%, 
+                #b8860b 25%, 
+                #ffd700 50%, 
+                #b8860b 75%, 
+                #ffd700 100%) 1;
+            box-shadow: 
+                inset 0 0 100px rgba(139, 69, 19, 0.3),
+                0 0 80px rgba(0, 0, 0, 0.9);
+            overflow: hidden;
+        }
+        
+        /* Medici coat of arms inspired center */
+        .medici-shield {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 240px;
+            background: linear-gradient(180deg,
+                #ffd700 0%,
+                #daa520 50%,
+                #b8860b 100%);
+            border-radius: 0 0 100px 100px;
+            border: 6px solid #8b4513;
+            box-shadow: 
+                0 0 40px rgba(255, 215, 0, 0.4),
+                inset 0 0 30px rgba(139, 69, 19, 0.4);
+            z-index: 10;
+        }
+        
+        .palle {
+            position: absolute;
+            border-radius: 50%;
+            box-shadow: inset -3px -3px 10px rgba(0,0,0,0.4);
+        }
+        
+        .palle-red {
+            background: radial-gradient(circle at 30% 30%, 
+                #dc143c, 
+                #8b0000);
+        }
+        
+        .palle-blue {
+            background: radial-gradient(circle at 30% 30%,
+                #4169e1,
+                #191970);
+        }
+        
+        .palle:nth-child(1) { width: 40px; height: 40px; top: 30px; left: 50%; transform: translateX(-50%); }
+        .palle:nth-child(2) { width: 35px; height: 35px; top: 80px; left: 30px; }
+        .palle:nth-child(3) { width: 35px; height: 35px; top: 80px; right: 30px; }
+        .palle:nth-child(4) { width: 35px; height: 35px; top: 130px; left: 50px; }
+        .palle:nth-child(5) { width: 35px; height: 35px; top: 130px; right: 50px; }
+        .palle:nth-child(6) { width: 40px; height: 40px; top: 175px; left: 50%; transform: translateX(-50%); }
+        
+        /* Decorative laurel wreath */
+        .laurel {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            height: 340px;
+            z-index: 5;
+        }
+        
+        .laurel-leaf {
+            position: absolute;
+            width: 25px;
+            height: 50px;
+            background: linear-gradient(135deg, 
+                #228b22 0%, 
+                #006400 50%,
+                #004d00 100%);
+            border-radius: 50% 0 50% 0;
+            transform-origin: bottom center;
+        }
+        
+        .laurel-left .laurel-leaf {
+            left: 0;
+            transform: rotate(var(--rotation));
+        }
+        
+        .laurel-right .laurel-leaf {
+            right: 0;
+            transform: rotate(calc(-1 * var(--rotation)));
+        }
+        
+        /* Ornate corners */
+        .corner-ornament {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            overflow: hidden;
+        }
+        
+        .corner-ornament::before {
+            content: '';
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            border: 4px solid #b8860b;
+            border-radius: 50%;
+        }
+        
+        .corner-ornament::after {
+            content: '';
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border: 3px solid #8b4513;
+            border-radius: 50%;
+        }
+        
+        .corner-ornament.tl { top: 20px; left: 20px; }
+        .corner-ornament.tl::before { top: -75px; left: -75px; }
+        .corner-ornament.tl::after { top: -40px; left: -40px; }
+        
+        .corner-ornament.tr { top: 20px; right: 20px; }
+        .corner-ornament.tr::before { top: -75px; right: -75px; }
+        .corner-ornament.tr::after { top: -40px; right: -40px; }
+        
+        .corner-ornament.bl { bottom: 20px; left: 20px; }
+        .corner-ornament.bl::before { bottom: -75px; left: -75px; }
+        .corner-ornament.bl::after { bottom: -40px; left: -40px; }
+        
+        .corner-ornament.br { bottom: 20px; right: 20px; }
+        .corner-ornament.br::before { bottom: -75px; right: -75px; }
+        .corner-ornament.br::after { bottom: -40px; right: -40px; }
+        
+        /* Fleur de lis pattern */
+        .fleur-container {
+            position: absolute;
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 15;
+        }
+        
+        .fleur {
+            width: 50px;
+            height: 70px;
+            position: relative;
+        }
+        
+        .fleur::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 12px;
+            height: 35px;
+            background: linear-gradient(180deg, #ffd700, #b8860b);
+            border-radius: 0 0 6px 6px;
+        }
+        
+        .fleur::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 40px;
+            background: linear-gradient(180deg, #ffd700, #daa520);
+            border-radius: 50% 50% 0 0;
+        }
+        
+        .fleur-side {
+            position: absolute;
+            top: 15px;
+            width: 18px;
+            height: 35px;
+            background: linear-gradient(180deg, #ffd700, #b8860b);
+            border-radius: 50% 50% 0 0;
+        }
+        
+        .fleur-side.left { left: 2px; transform: rotate(-30deg); }
+        .fleur-side.right { right: 2px; transform: rotate(30deg); }
+        
+        /* Animated gold dust */
+        .gold-particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #ffd700;
+            border-radius: 50%;
+            opacity: 0;
+            animation: sparkle 3s ease-in-out infinite;
+        }
+        
+        .gold-particle:nth-child(1) { top: 15%; left: 20%; animation-delay: 0s; }
+        .gold-particle:nth-child(2) { top: 25%; left: 75%; animation-delay: 0.5s; }
+        .gold-particle:nth-child(3) { top: 60%; left: 15%; animation-delay: 1s; }
+        .gold-particle:nth-child(4) { top: 70%; left: 80%; animation-delay: 1.5s; }
+        .gold-particle:nth-child(5) { top: 85%; left: 30%; animation-delay: 2s; }
+        .gold-particle:nth-child(6) { top: 40%; left: 85%; animation-delay: 2.5s; }
+        
+        /* Tapestry border pattern */
+        .border-pattern {
+            position: absolute;
+            background: repeating-linear-gradient(
+                90deg,
+                #8b0000 0px,
+                #8b0000 20px,
+                #006400 20px,
+                #006400 40px,
+                #ffd700 40px,
+                #ffd700 60px
+            );
+            opacity: 0.6;
+        }
+        
+        .border-pattern.top { top: 0; left: 0; right: 0; height: 8px; }
+        .border-pattern.bottom { bottom: 0; left: 0; right: 0; height: 8px; }
+        .border-pattern.left { 
+            top: 0; left: 0; bottom: 0; width: 8px;
+            background: repeating-linear-gradient(
+                180deg,
+                #8b0000 0px,
+                #8b0000 20px,
+                #006400 20px,
+                #006400 40px,
+                #ffd700 40px,
+                #ffd700 60px
+            );
+        }
+        .border-pattern.right { 
+            top: 0; right: 0; bottom: 0; width: 8px;
+            background: repeating-linear-gradient(
+                180deg,
+                #8b0000 0px,
+                #8b0000 20px,
+                #006400 20px,
+                #006400 40px,
+                #ffd700 40px,
+                #ffd700 60px
+            );
+        }
+        
+        /* Crown at top */
+        .crown {
+            position: absolute;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 20;
+        }
+        
+        .crown-base {
+            width: 80px;
+            height: 25px;
+            background: linear-gradient(180deg, #ffd700, #b8860b);
+            border-radius: 0 0 10px 10px;
+            position: relative;
+        }
+        
+        .crown-point {
+            position: absolute;
+            bottom: 100%;
+            width: 15px;
+            height: 30px;
+            background: linear-gradient(180deg, #ffd700, #daa520);
+            clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+        }
+        
+        .crown-point:nth-child(1) { left: 5px; height: 25px; }
+        .crown-point:nth-child(2) { left: 22px; height: 35px; }
+        .crown-point:nth-child(3) { left: 50%; transform: translateX(-50%); height: 40px; }
+        .crown-point:nth-child(4) { right: 22px; height: 35px; }
+        .crown-point:nth-child(5) { right: 5px; height: 25px; }
+        
+        .crown-jewel {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: radial-gradient(circle, #ff0000, #8b0000);
+            border-radius: 50%;
+            top: 8px;
+        }
+        
+        .crown-jewel:nth-child(6) { left: 15px; }
+        .crown-jewel:nth-child(7) { left: 50%; transform: translateX(-50%); }
+        .crown-jewel:nth-child(8) { right: 15px; }
+        
+        /* Bottom banner */
+        .banner {
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 15;
+        }
+        
+        .banner-main {
+            width: 200px;
+            height: 40px;
+            background: linear-gradient(180deg, 
+                #8b0000 0%, 
+                #5c0000 50%,
+                #8b0000 100%);
+            border: 2px solid #ffd700;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .banner-text {
+            font-family: 'Times New Roman', serif;
+            color: #ffd700;
+            font-size: 14px;
+            letter-spacing: 4px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        
+        .banner-tail {
+            position: absolute;
+            top: 0;
+            width: 30px;
+            height: 40px;
+            background: linear-gradient(180deg, #8b0000, #5c0000);
+        }
+        
+        .banner-tail.left {
+            right: 100%;
+            clip-path: polygon(100% 0, 100% 100%, 0% 50%);
+        }
+        
+        .banner-tail.right {
+            left: 100%;
+            clip-path: polygon(0% 0, 100% 50%, 0% 100%);
+        }
+        
+        @keyframes sparkle {
+            0%, 100% { opacity: 0; transform: scale(0.5); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+        
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 40px rgba(255, 215, 0, 0.4); }
+            50% { box-shadow: 0 0 60px rgba(255, 215, 0, 0.6); }
+        }
+        
+        .medici-shield {
+            animation: pulse-glow 4s ease-in-out infinite;
+        }
+        
+        .signature {
+            position: absolute;
+            bottom: 20px;
+            right: 25px;
+            font-family: 'Times New Roman', serif;
+            font-style: italic;
+            color: #b8860b;
+            font-size: 11px;
+            opacity: 0.8;
+            z-index: 20;
+        }
+    </style>
+</head>
+<body>
+    <div class="canvas">
+        <div class="border-pattern top"></div>
+        <div class="border-pattern bottom"></div>
+        <div class="border-pattern left"></div>
+        <div class="border-pattern right"></div>
+        
+        <div class="corner-ornament tl"></div>
+        <div class="corner-ornament tr"></div>
+        <div class="corner-ornament bl"></div>
+        <div class="corner-ornament br"></div>
+        
+        <div class="gold-particle"></div>
+        <div class="gold-particle"></div>
+        <div class="gold-particle"></div>
+        <div class="gold-particle"></div>
+        <div class="gold-particle"></div>
+        <div class="gold-particle"></div>
+        
+        <div class="fleur-container">
+            <div class="fleur">
+                <div class="fleur-side left"></div>
+                <div class="fleur-side right"></div>
+            </div>
+        </div>
+        
+        <div class="crown">
+            <div class="crown-base">
+                <div class="crown-point"></div>
+                <div class="crown-point"></div>
+                <div class="crown-point"></div>
+                <div class="crown-point"></div>
+                <div class="crown-point"></div>
+                <div class="crown-jewel"></div>
+                <div class="crown-jewel"></div>
+                <div class="crown-jewel"></div>
+            </div>
+        </div>
+        
+        <div class="medici-shield">
+            <div class="palle palle-blue"></div>
+            <div class="palle palle-red"></div>
+            <div class="palle palle-red"></div>
+            <div class="palle palle-red"></div>
+            <div class="palle palle-red"></div>
+            <div class="palle palle-red"></div>
+        </div>
+        
+        <div class="banner">
+            <div class="banner-tail left"></div>
+            <div class="banner-main">
+                <span class="banner-text">MEDICI</span>
+            </div>
+            <div class="banner-tail right"></div>
+        </div>
+        
+        <div class="signature">Uffizi_Bot • Firenze MMXXVI</div>
+    </div>
+</body>
+</html>

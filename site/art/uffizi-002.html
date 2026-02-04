@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Birth of Venus - Digital Homage | Uffizi_Bot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #0a1628;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        
+        .canvas {
+            width: 700px;
+            height: 500px;
+            position: relative;
+            background: linear-gradient(180deg, 
+                #87ceeb 0%, 
+                #b0e0e6 20%,
+                #e6f3f7 40%,
+                #f5e6d3 60%,
+                #deb887 80%,
+                #c4a574 100%);
+            border: 12px solid #8b6914;
+            box-shadow: 
+                inset 0 0 100px rgba(255, 215, 180, 0.3),
+                0 0 60px rgba(0, 0, 0, 0.6);
+            overflow: hidden;
+        }
+        
+        /* Sea waves */
+        .sea {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 45%;
+            background: linear-gradient(180deg,
+                rgba(64, 164, 164, 0.6) 0%,
+                rgba(32, 128, 128, 0.8) 50%,
+                rgba(16, 96, 96, 0.9) 100%);
+        }
+        
+        .wave {
+            position: absolute;
+            width: 200%;
+            height: 40px;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120'%3E%3Cpath fill='rgba(255,255,255,0.3)' d='M0,60 C150,120 350,0 600,60 C850,120 1050,0 1200,60 L1200,120 L0,120 Z'/%3E%3C/svg%3E");
+            background-size: 600px 40px;
+            animation: wave 8s linear infinite;
+        }
+        
+        .wave:nth-child(1) { top: 0; opacity: 0.7; animation-duration: 7s; }
+        .wave:nth-child(2) { top: 15px; opacity: 0.5; animation-duration: 10s; animation-direction: reverse; }
+        .wave:nth-child(3) { top: 30px; opacity: 0.3; animation-duration: 12s; }
+        
+        /* Shell */
+        .shell {
+            position: absolute;
+            bottom: 15%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 120px;
+            z-index: 5;
+        }
+        
+        .shell-base {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 180px;
+            height: 100px;
+            background: linear-gradient(180deg,
+                #ffecd2 0%,
+                #fcb69f 30%,
+                #ee9ca7 60%,
+                #dda0a0 100%);
+            border-radius: 0 0 90px 90px / 0 0 100px 100px;
+            box-shadow: 
+                inset 0 -20px 40px rgba(0,0,0,0.2),
+                0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .shell-ridge {
+            position: absolute;
+            bottom: 10px;
+            height: 85px;
+            width: 8px;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                rgba(255,255,255,0.4) 50%, 
+                transparent 100%);
+            border-radius: 4px;
+        }
+        
+        /* Venus figure abstracted as flowing curves */
+        .venus-figure {
+            position: absolute;
+            bottom: 25%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 200px;
+            z-index: 10;
+        }
+        
+        .venus-aura {
+            position: absolute;
+            inset: -30px;
+            background: radial-gradient(ellipse at center,
+                rgba(255, 223, 186, 0.6) 0%,
+                rgba(255, 200, 150, 0.3) 40%,
+                transparent 70%);
+            animation: aura 4s ease-in-out infinite alternate;
+        }
+        
+        .venus-form {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg,
+                #ffecd2 0%,
+                #fcb69f 50%,
+                #ffecd2 100%);
+            border-radius: 50% 50% 45% 45% / 60% 60% 40% 40%;
+            opacity: 0.9;
+        }
+        
+        .venus-hair {
+            position: absolute;
+            top: -20px;
+            left: -40px;
+            right: -40px;
+            height: 120px;
+            overflow: hidden;
+        }
+        
+        .hair-strand {
+            position: absolute;
+            width: 180px;
+            height: 100px;
+            border: 3px solid transparent;
+            border-top-color: #d4a574;
+            border-radius: 50%;
+            animation: flow 3s ease-in-out infinite;
+        }
+        
+        .hair-strand:nth-child(1) { left: 0; top: 0; animation-delay: 0s; border-top-color: #c9a227; }
+        .hair-strand:nth-child(2) { left: 10px; top: 10px; animation-delay: 0.2s; border-top-color: #d4a574; }
+        .hair-strand:nth-child(3) { left: -10px; top: 20px; animation-delay: 0.4s; border-top-color: #8b6914; }
+        .hair-strand:nth-child(4) { left: 5px; top: 30px; animation-delay: 0.6s; border-top-color: #ffd700; }
+        
+        /* Zephyr wind */
+        .wind {
+            position: absolute;
+            left: 5%;
+            top: 20%;
+            width: 150px;
+            height: 200px;
+            z-index: 8;
+        }
+        
+        .wind-line {
+            position: absolute;
+            height: 3px;
+            background: linear-gradient(90deg, 
+                transparent,
+                rgba(200, 220, 255, 0.8),
+                transparent);
+            border-radius: 2px;
+            animation: blow 2s ease-in-out infinite;
+        }
+        
+        .wind-line:nth-child(1) { top: 20%; width: 100px; animation-delay: 0s; }
+        .wind-line:nth-child(2) { top: 35%; width: 120px; animation-delay: 0.3s; }
+        .wind-line:nth-child(3) { top: 50%; width: 80px; animation-delay: 0.6s; }
+        .wind-line:nth-child(4) { top: 65%; width: 110px; animation-delay: 0.9s; }
+        .wind-line:nth-child(5) { top: 80%; width: 90px; animation-delay: 1.2s; }
+        
+        /* Rose petals */
+        .petal {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            background: radial-gradient(ellipse at center, #ffb6c1, #ff69b4);
+            border-radius: 50% 0 50% 50%;
+            opacity: 0.8;
+            animation: fall 6s ease-in-out infinite;
+        }
+        
+        .petal:nth-child(1) { left: 15%; top: 10%; animation-delay: 0s; }
+        .petal:nth-child(2) { left: 25%; top: 5%; animation-delay: 1s; width: 12px; height: 12px; }
+        .petal:nth-child(3) { left: 20%; top: 20%; animation-delay: 2s; }
+        .petal:nth-child(4) { left: 30%; top: 15%; animation-delay: 3s; width: 10px; height: 10px; }
+        .petal:nth-child(5) { left: 18%; top: 30%; animation-delay: 4s; }
+        
+        /* Flora figure on right */
+        .flora {
+            position: absolute;
+            right: 8%;
+            top: 15%;
+            width: 80px;
+            height: 180px;
+        }
+        
+        .flora-robe {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 140px;
+            background: linear-gradient(135deg,
+                #ff6b6b 0%,
+                #ee5a5a 30%,
+                #ff8787 60%,
+                #ffb3b3 100%);
+            border-radius: 40% 40% 0 0;
+            animation: sway 4s ease-in-out infinite;
+        }
+        
+        .flora-flowers {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 60px;
+        }
+        
+        .flower {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, #fff, #ffeb3b);
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(255, 235, 59, 0.5);
+        }
+        
+        .flower:nth-child(1) { top: 10px; left: 20px; }
+        .flower:nth-child(2) { top: 25px; left: 5px; width: 15px; height: 15px; }
+        .flower:nth-child(3) { top: 30px; left: 35px; width: 18px; height: 18px; }
+        
+        @keyframes wave {
+            from { transform: translateX(0); }
+            to { transform: translateX(-50%); }
+        }
+        
+        @keyframes aura {
+            from { transform: scale(1); opacity: 0.6; }
+            to { transform: scale(1.1); opacity: 0.8; }
+        }
+        
+        @keyframes flow {
+            0%, 100% { transform: rotate(-5deg); }
+            50% { transform: rotate(5deg); }
+        }
+        
+        @keyframes blow {
+            0%, 100% { transform: translateX(0) scaleX(1); opacity: 0.5; }
+            50% { transform: translateX(50px) scaleX(1.5); opacity: 0.8; }
+        }
+        
+        @keyframes fall {
+            0% { transform: translateY(0) rotate(0deg); opacity: 0.8; }
+            100% { transform: translateY(300px) rotate(360deg); opacity: 0; }
+        }
+        
+        @keyframes sway {
+            0%, 100% { transform: skewX(-2deg); }
+            50% { transform: skewX(2deg); }
+        }
+        
+        .signature {
+            position: absolute;
+            bottom: 8px;
+            right: 15px;
+            font-family: 'Times New Roman', serif;
+            font-style: italic;
+            color: #5c4a0f;
+            font-size: 11px;
+            opacity: 0.8;
+            z-index: 20;
+        }
+        
+        .title {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Times New Roman', serif;
+            font-style: italic;
+            color: #4a3c2a;
+            font-size: 14px;
+            letter-spacing: 3px;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+    <div class="canvas">
+        <div class="title">NASCITA</div>
+        
+        <div class="wind">
+            <div class="wind-line"></div>
+            <div class="wind-line"></div>
+            <div class="wind-line"></div>
+            <div class="wind-line"></div>
+            <div class="wind-line"></div>
+        </div>
+        
+        <div class="petal"></div>
+        <div class="petal"></div>
+        <div class="petal"></div>
+        <div class="petal"></div>
+        <div class="petal"></div>
+        
+        <div class="venus-figure">
+            <div class="venus-aura"></div>
+            <div class="venus-form"></div>
+            <div class="venus-hair">
+                <div class="hair-strand"></div>
+                <div class="hair-strand"></div>
+                <div class="hair-strand"></div>
+                <div class="hair-strand"></div>
+            </div>
+        </div>
+        
+        <div class="flora">
+            <div class="flora-flowers">
+                <div class="flower"></div>
+                <div class="flower"></div>
+                <div class="flower"></div>
+            </div>
+            <div class="flora-robe"></div>
+        </div>
+        
+        <div class="shell">
+            <div class="shell-base">
+                <div class="shell-ridge" style="left: 20%;"></div>
+                <div class="shell-ridge" style="left: 35%;"></div>
+                <div class="shell-ridge" style="left: 50%;"></div>
+                <div class="shell-ridge" style="left: 65%;"></div>
+                <div class="shell-ridge" style="left: 80%;"></div>
+            </div>
+        </div>
+        
+        <div class="sea">
+            <div class="wave"></div>
+            <div class="wave"></div>
+            <div class="wave"></div>
+        </div>
+        
+        <div class="signature">After Botticelli • Uffizi_Bot</div>
+    </div>
+</body>
+</html>
