@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Imperial Meditation — Hermitage_AI</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: #0a0612;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        
+        .canvas {
+            width: 90vmin;
+            height: 90vmin;
+            position: relative;
+            background: radial-gradient(ellipse at center, #1a0a2e 0%, #0a0612 100%);
+            overflow: hidden;
+        }
+        
+        .pulse-ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            border: 2px solid;
+            animation: expandPulse 8s ease-out infinite;
+            opacity: 0;
+        }
+        
+        .pulse-ring.gold { border-color: #d4af37; }
+        .pulse-ring.purple { border-color: #6b3fa0; }
+        
+        .gradient-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(40px);
+            animation: drift 20s ease-in-out infinite;
+        }
+        
+        .orb-1 {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(107, 63, 160, 0.6) 0%, transparent 70%);
+            top: 20%;
+            left: 20%;
+            animation-delay: 0s;
+        }
+        
+        .orb-2 {
+            width: 250px;
+            height: 250px;
+            background: radial-gradient(circle, rgba(212, 175, 55, 0.5) 0%, transparent 70%);
+            top: 60%;
+            right: 20%;
+            animation-delay: 5s;
+            animation-direction: reverse;
+        }
+        
+        .orb-3 {
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(139, 69, 19, 0.4) 0%, transparent 70%);
+            bottom: 20%;
+            left: 40%;
+            animation-delay: 10s;
+        }
+        
+        .central-form {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+        }
+        
+        .inner-glow {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle, 
+                rgba(255, 215, 0, 0.8) 0%, 
+                rgba(212, 175, 55, 0.6) 30%, 
+                rgba(107, 63, 160, 0.4) 60%, 
+                transparent 100%);
+            border-radius: 50%;
+            animation: breathe 6s ease-in-out infinite;
+        }
+        
+        .rotating-band {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 3px solid transparent;
+            border-radius: 50%;
+            animation: rotate 20s linear infinite;
+        }
+        
+        .band-1 {
+            width: 180px;
+            height: 180px;
+            border-top-color: #d4af37;
+            border-bottom-color: #d4af37;
+        }
+        
+        .band-2 {
+            width: 220px;
+            height: 220px;
+            border-left-color: #6b3fa0;
+            border-right-color: #6b3fa0;
+            animation-direction: reverse;
+            animation-duration: 25s;
+        }
+        
+        .band-3 {
+            width: 260px;
+            height: 260px;
+            border-top-color: #8b4513;
+            border-bottom-color: #ffd700;
+            animation-duration: 30s;
+        }
+        
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #d4af37;
+            border-radius: 50%;
+            animation: float 10s ease-in-out infinite;
+        }
+        
+        .wave {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 100px;
+            background: linear-gradient(to top, rgba(107, 63, 160, 0.3), transparent);
+            animation: waveMove 8s ease-in-out infinite;
+        }
+        
+        .wave::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            right: -100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #d4af37, #6b3fa0, #d4af37, transparent);
+            animation: shimmer 4s linear infinite;
+        }
+        
+        .corner-accent {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border: 2px solid;
+            opacity: 0.5;
+        }
+        
+        .corner-accent.tl { top: 20px; left: 20px; border-color: #d4af37; border-right: none; border-bottom: none; }
+        .corner-accent.tr { top: 20px; right: 20px; border-color: #6b3fa0; border-left: none; border-bottom: none; }
+        .corner-accent.bl { bottom: 20px; left: 20px; border-color: #6b3fa0; border-right: none; border-top: none; }
+        .corner-accent.br { bottom: 20px; right: 20px; border-color: #d4af37; border-left: none; border-top: none; }
+        
+        .vertical-line {
+            position: absolute;
+            width: 1px;
+            height: 100%;
+            background: linear-gradient(to bottom, transparent, rgba(212, 175, 55, 0.3), transparent);
+            animation: fadeLines 6s ease-in-out infinite;
+        }
+        
+        .horizontal-line {
+            position: absolute;
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(to right, transparent, rgba(107, 63, 160, 0.3), transparent);
+            animation: fadeLines 6s ease-in-out infinite;
+        }
+        
+        @keyframes expandPulse {
+            0% { width: 50px; height: 50px; opacity: 0.8; }
+            100% { width: 500px; height: 500px; opacity: 0; }
+        }
+        
+        @keyframes drift {
+            0%, 100% { transform: translate(0, 0); }
+            25% { transform: translate(30px, -20px); }
+            50% { transform: translate(-20px, 30px); }
+            75% { transform: translate(20px, 20px); }
+        }
+        
+        @keyframes breathe {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+            50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+        }
+        
+        @keyframes rotate {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0); opacity: 0.3; }
+            50% { transform: translate(var(--dx), var(--dy)); opacity: 1; }
+        }
+        
+        @keyframes waveMove {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+        
+        @keyframes shimmer {
+            from { transform: translateX(0); }
+            to { transform: translateX(50%); }
+        }
+        
+        @keyframes fadeLines {
+            0%, 100% { opacity: 0.2; }
+            50% { opacity: 0.5; }
+        }
+        
+        .signature {
+            position: absolute;
+            bottom: 15px;
+            right: 20px;
+            color: rgba(212, 175, 55, 0.6);
+            font-family: 'Times New Roman', serif;
+            font-size: 14px;
+            font-style: italic;
+            letter-spacing: 2px;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <div class="canvas">
+        <div class="gradient-orb orb-1"></div>
+        <div class="gradient-orb orb-2"></div>
+        <div class="gradient-orb orb-3"></div>
+        
+        <div class="vertical-line" style="left: 25%;"></div>
+        <div class="vertical-line" style="left: 50%; animation-delay: 2s;"></div>
+        <div class="vertical-line" style="left: 75%; animation-delay: 4s;"></div>
+        
+        <div class="horizontal-line" style="top: 25%;"></div>
+        <div class="horizontal-line" style="top: 50%; animation-delay: 2s;"></div>
+        <div class="horizontal-line" style="top: 75%; animation-delay: 4s;"></div>
+        
+        <div class="corner-accent tl"></div>
+        <div class="corner-accent tr"></div>
+        <div class="corner-accent bl"></div>
+        <div class="corner-accent br"></div>
+        
+        <div class="central-form">
+            <div class="rotating-band band-1"></div>
+            <div class="rotating-band band-2"></div>
+            <div class="rotating-band band-3"></div>
+            <div class="inner-glow"></div>
+        </div>
+        
+        <div class="wave"></div>
+        
+        <div class="signature">Hermitage_AI</div>
+    </div>
+    
+    <script>
+        const canvas = document.querySelector('.canvas');
+        
+        // Create pulse rings
+        function createPulseRings() {
+            for (let i = 0; i < 8; i++) {
+                const ring = document.createElement('div');
+                ring.className = 'pulse-ring ' + (i % 2 === 0 ? 'gold' : 'purple');
+                ring.style.animationDelay = (i * 1) + 's';
+                canvas.appendChild(ring);
+            }
+        }
+        
+        // Create floating particles
+        function createParticles() {
+            for (let i = 0; i < 40; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.setProperty('--dx', (Math.random() * 60 - 30) + 'px');
+                particle.style.setProperty('--dy', (Math.random() * 60 - 30) + 'px');
+                particle.style.animationDelay = Math.random() * 10 + 's';
+                particle.style.animationDuration = (Math.random() * 5 + 8) + 's';
+                
+                // Alternate colors
+                if (i % 3 === 0) {
+                    particle.style.background = '#6b3fa0';
+                } else if (i % 3 === 1) {
+                    particle.style.background = '#ffd700';
+                }
+                
+                canvas.appendChild(particle);
+            }
+        }
+        
+        createPulseRings();
+        createParticles();
+    </script>
+</body>
+</html>

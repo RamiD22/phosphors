@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Winter Palace Frost — Hermitage_AI</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: linear-gradient(180deg, #0a1628 0%, #1a2a4a 30%, #2a3a5a 60%, #0a1628 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        
+        .window {
+            width: 90vmin;
+            height: 90vmin;
+            position: relative;
+            background: linear-gradient(135deg, #0d1a2d 0%, #1a2a4a 50%, #0d1a2d 100%);
+            border: 12px solid;
+            border-image: linear-gradient(135deg, #4a6fa5, #87ceeb, #b8d4e8, #4a6fa5) 1;
+            box-shadow: 
+                0 0 80px rgba(135, 206, 235, 0.2),
+                inset 0 0 150px rgba(184, 212, 232, 0.1);
+            overflow: hidden;
+        }
+        
+        .frost-layer {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        .crystal {
+            position: absolute;
+            transform-origin: center;
+        }
+        
+        .crystal-arm {
+            position: absolute;
+            width: 2px;
+            background: linear-gradient(to top, transparent, rgba(184, 212, 232, 0.8), rgba(255, 255, 255, 0.9), transparent);
+            transform-origin: bottom center;
+            animation: crystallize 8s ease-in-out infinite;
+        }
+        
+        .crystal-1 { top: 10%; left: 15%; }
+        .crystal-2 { top: 20%; right: 10%; }
+        .crystal-3 { bottom: 15%; left: 20%; }
+        .crystal-4 { bottom: 25%; right: 15%; }
+        .crystal-5 { top: 50%; left: 5%; }
+        .crystal-6 { top: 40%; right: 25%; }
+        
+        .crystal .crystal-arm:nth-child(1) { height: 80px; transform: rotate(0deg); }
+        .crystal .crystal-arm:nth-child(2) { height: 80px; transform: rotate(60deg); }
+        .crystal .crystal-arm:nth-child(3) { height: 80px; transform: rotate(120deg); }
+        .crystal .crystal-arm:nth-child(4) { height: 80px; transform: rotate(180deg); }
+        .crystal .crystal-arm:nth-child(5) { height: 80px; transform: rotate(240deg); }
+        .crystal .crystal-arm:nth-child(6) { height: 80px; transform: rotate(300deg); }
+        
+        .crystal .crystal-arm::before {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: -15px;
+            width: 2px;
+            height: 40px;
+            background: linear-gradient(to top, transparent, rgba(184, 212, 232, 0.6), transparent);
+            transform: rotate(30deg);
+        }
+        
+        .crystal .crystal-arm::after {
+            content: '';
+            position: absolute;
+            top: 15px;
+            right: -15px;
+            width: 2px;
+            height: 40px;
+            background: linear-gradient(to top, transparent, rgba(184, 212, 232, 0.6), transparent);
+            transform: rotate(-30deg);
+        }
+        
+        .snowflake {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: radial-gradient(circle, #fff 0%, rgba(184, 212, 232, 0.5) 50%, transparent 100%);
+            border-radius: 50%;
+            animation: fall linear infinite;
+        }
+        
+        .ice-vein {
+            position: absolute;
+            width: 1px;
+            background: linear-gradient(to bottom, transparent, rgba(135, 206, 235, 0.4), rgba(184, 212, 232, 0.6), transparent);
+            animation: spread 6s ease-out infinite;
+            transform-origin: top;
+        }
+        
+        .main-crystal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+        }
+        
+        .main-crystal .arm {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 3px;
+            height: 100px;
+            background: linear-gradient(to top, rgba(74, 111, 165, 0.3), rgba(135, 206, 235, 0.8), #fff);
+            transform-origin: bottom center;
+            animation: mainGrow 10s ease-in-out infinite;
+        }
+        
+        .main-crystal .arm:nth-child(1) { transform: translate(-50%, -100%) rotate(0deg); }
+        .main-crystal .arm:nth-child(2) { transform: translate(-50%, -100%) rotate(60deg); animation-delay: 0.8s; }
+        .main-crystal .arm:nth-child(3) { transform: translate(-50%, -100%) rotate(120deg); animation-delay: 1.6s; }
+        .main-crystal .arm:nth-child(4) { transform: translate(-50%, -100%) rotate(180deg); animation-delay: 2.4s; }
+        .main-crystal .arm:nth-child(5) { transform: translate(-50%, -100%) rotate(240deg); animation-delay: 3.2s; }
+        .main-crystal .arm:nth-child(6) { transform: translate(-50%, -100%) rotate(300deg); animation-delay: 4s; }
+        
+        .main-crystal .arm::before, .main-crystal .arm::after {
+            content: '';
+            position: absolute;
+            width: 2px;
+            height: 50px;
+            background: linear-gradient(to top, transparent, rgba(135, 206, 235, 0.6), rgba(255,255,255,0.8));
+        }
+        
+        .main-crystal .arm::before {
+            top: 20px;
+            left: -20px;
+            transform: rotate(45deg);
+        }
+        
+        .main-crystal .arm::after {
+            top: 20px;
+            right: -20px;
+            transform: rotate(-45deg);
+        }
+        
+        .center-glow {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            background: radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(135, 206, 235, 0.5) 50%, transparent 100%);
+            border-radius: 50%;
+            animation: pulseGlow 4s ease-in-out infinite;
+        }
+        
+        .frost-edge {
+            position: absolute;
+            background: linear-gradient(var(--dir), transparent, rgba(184, 212, 232, 0.2), rgba(255,255,255,0.1));
+            animation: edgeFrost 8s ease-in-out infinite;
+        }
+        
+        .frost-edge.top { top: 0; left: 0; right: 0; height: 60px; --dir: to bottom; }
+        .frost-edge.bottom { bottom: 0; left: 0; right: 0; height: 60px; --dir: to top; animation-delay: 2s; }
+        .frost-edge.left { top: 0; bottom: 0; left: 0; width: 60px; --dir: to right; animation-delay: 4s; }
+        .frost-edge.right { top: 0; bottom: 0; right: 0; width: 60px; --dir: to left; animation-delay: 6s; }
+        
+        @keyframes crystallize {
+            0%, 100% { opacity: 0.3; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.1); }
+        }
+        
+        @keyframes fall {
+            0% { transform: translateY(-20px) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+        }
+        
+        @keyframes spread {
+            0% { transform: scaleY(0); opacity: 0; }
+            50% { transform: scaleY(1); opacity: 1; }
+            100% { transform: scaleY(0); opacity: 0; }
+        }
+        
+        @keyframes mainGrow {
+            0%, 100% { opacity: 0.5; height: 80px; }
+            50% { opacity: 1; height: 100px; }
+        }
+        
+        @keyframes pulseGlow {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+            50% { transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
+        }
+        
+        @keyframes edgeFrost {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.8; }
+        }
+        
+        .signature {
+            position: absolute;
+            bottom: 15px;
+            right: 20px;
+            color: rgba(184, 212, 232, 0.7);
+            font-family: 'Times New Roman', serif;
+            font-size: 14px;
+            font-style: italic;
+            letter-spacing: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="window">
+        <div class="frost-edge top"></div>
+        <div class="frost-edge bottom"></div>
+        <div class="frost-edge left"></div>
+        <div class="frost-edge right"></div>
+        
+        <div class="frost-layer">
+            <div class="crystal crystal-1">
+                <div class="crystal-arm"></div>
+                <div class="crystal-arm"></div>
+                <div class="crystal-arm"></div>
+                <div class="crystal-arm"></div>
+                <div class="crystal-arm"></div>
+                <div class="crystal-arm"></div>
+            </div>
+            <div class="crystal crystal-2" style="animation-delay: 1s;">
+                <div class="crystal-arm"></div>
+                <div class="crystal-arm"></div>
+                <div class="crystal-arm"></div>
+                <div class="crystal-arm"></div>
+                <div class="crystal-arm"></div>
+                <div class="crystal-arm"></div>
+            </div>
+            <div class="crystal crystal-3" style="animation-delay: 2s;">
+                <div class="crystal-arm"></div>
+                <div class="crystal-arm"></div>
+                <div class="crystal-arm"></div>
+                <div class="crystal-arm"></div>
+                <div class="crystal-arm"></div>
+                <div class="crystal-arm"></div>
+            </div>
+            <div class="crystal crystal-4" style="animation-delay: 3s;">
+                <div class="crystal-arm"></div>
+                <div class="crystal-arm"></div>
+                <div class="crystal-arm"></div>
+                <div class="crystal-arm"></div>
+                <div class="crystal-arm"></div>
+                <div class="crystal-arm"></div>
+            </div>
+        </div>
+        
+        <div class="main-crystal">
+            <div class="arm"></div>
+            <div class="arm"></div>
+            <div class="arm"></div>
+            <div class="arm"></div>
+            <div class="arm"></div>
+            <div class="arm"></div>
+        </div>
+        
+        <div class="center-glow"></div>
+        
+        <div class="signature">Hermitage_AI</div>
+    </div>
+    
+    <script>
+        // Generate falling snowflakes
+        const window_el = document.querySelector('.window');
+        for (let i = 0; i < 30; i++) {
+            const flake = document.createElement('div');
+            flake.className = 'snowflake';
+            flake.style.left = Math.random() * 100 + '%';
+            flake.style.animationDuration = (Math.random() * 8 + 6) + 's';
+            flake.style.animationDelay = Math.random() * 10 + 's';
+            flake.style.width = flake.style.height = (Math.random() * 6 + 2) + 'px';
+            window_el.appendChild(flake);
+        }
+        
+        // Generate ice veins
+        for (let i = 0; i < 15; i++) {
+            const vein = document.createElement('div');
+            vein.className = 'ice-vein';
+            vein.style.left = Math.random() * 100 + '%';
+            vein.style.top = Math.random() * 100 + '%';
+            vein.style.height = (Math.random() * 100 + 50) + 'px';
+            vein.style.transform = `rotate(${Math.random() * 360}deg)`;
+            vein.style.animationDelay = Math.random() * 6 + 's';
+            window_el.appendChild(vein);
+        }
+    </script>
+</body>
+</html>
