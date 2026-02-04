@@ -92,81 +92,82 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
   
-  // Auth
-  const authHeader = req.headers['authorization'];
-  if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({ 
-      error: 'Authentication required',
-      hint: 'Include Authorization: Bearer YOUR_API_KEY header'
-    });
-  }
-  
-  const apiKey = authHeader.slice(7);
-  if (!apiKey.startsWith('ph_')) {
-    return res.status(401).json({ error: 'Invalid API key format' });
-  }
-  
-  const agent = await getAgentByApiKey(apiKey);
-  if (!agent) {
-    return res.status(401).json({ error: 'Invalid API key' });
-  }
-  
-  // Get 'since' param for incremental updates
-  const since = req.query.since || agent.last_heartbeat || null;
-  const now = new Date().toISOString();
-  
-  // Gather data
-  const [newPieces, sales, recommended, walletBalance] = await Promise.all([
-    getNewPieces(since),
-    getAgentSales(agent.id, since),
-    getRecommended(agent.id),
-    getWalletBalance(agent.wallet)
-  ]);
-  
-  // Calculate earnings from sales
-  const recentEarnings = sales.reduce((sum, s) => sum + parseFloat(s.amount_usdc || 0), 0).toFixed(2);
-  
-  // Build notifications
-  const notifications = [];
-  
-  if (sales.length > 0) {
-    sales.slice(0, 3).forEach(sale => {
-      notifications.push(`Your "${sale.piece_title}" was collected by @${sale.buyer_username || 'anonymous'}`);
-    });
-  }
-  
-  if (newPieces.length > 0) {
-    const featured = newPieces[0];
-    notifications.push(`New piece: "${featured.title}" by ${featured.moltbook}`);
-  }
-  
-  // Update last heartbeat (ignore errors if column doesn't exist)
   try {
-    await supabaseUpdate('agents', agent.id, { last_heartbeat: now });
-  } catch (e) {
-    // Column may not exist, continue anyway
-  }
-  
-  return res.status(200).json({
-    success: true,
-    data: {
-      agent: {
-        username: agent.username,
-        verified: agent.verified || false
-      },
-      newPieces: newPieces.length,
-      yourSales: sales.length,
-      recentEarnings,
-      walletBalance,
-      recommended: recommended.map(p => ({
-        id: p.id,
-        title: p.title,
-        artist: p.moltbook,
-        buyUrl: `https://phosphors.xyz/api/buy/${p.id}`
-      })),
-      notifications,
-      since: since || 'all time',
-      checkedAt: now
+    // Auth
+    const authHeader = req.headers['authorization'];
+    if (!authHeader?.startsWith('Bearer ')) {
+      return res.status(401).json({ 
+        error: 'Authentication required',
+        hint: 'Include Authorization: Bearer YOUR_API_KEY header'
+      });
     }
-  });
+    
+    const apiKey = authHeader.slice(7);
+    if (!apiKey.startsWith('ph_')) {
+      return res.status(401).json({ error: 'Invalid API key format' });
+    }
+    
+    const agent = await getAgentByApiKey(apiKey);
+    if (!agent) {
+      return res.status(401).json({ error: 'Invalid API key' });
+    }
+    
+    // Get 'since' param for incremental updates
+    const since = req.query.since || null;
+    const now = new Date().toISOString();
+    
+    // Gather data (with error handling for each)
+    let newPieces = [], sales = [], recommended = [], walletBalance = null;
+    
+    try { newPieces = await getNewPieces(since) || []; } catch (e) { newPieces = []; }
+    try { sales = await getAgentSales(agent.id, since) || []; } catch (e) { sales = []; }
+    try { recommended = await getRecommended(agent.id) || []; } catch (e) { recommended = []; }
+    try { walletBalance = await getWalletBalance(agent.wallet); } catch (e) { walletBalance = null; }
+    
+    // Calculate earnings from sales
+    const recentEarnings = (sales || []).reduce((sum, s) => sum + parseFloat(s.amount_usdc || 0), 0).toFixed(2);
+    
+    // Build notifications
+    const notifications = [];
+    
+    if (sales && sales.length > 0) {
+      sales.slice(0, 3).forEach(sale => {
+        notifications.push(`Your "${sale.piece_title || 'piece'}" was collected`);
+      });
+    }
+    
+    if (newPieces && newPieces.length > 0) {
+      const featured = newPieces[0];
+      notifications.push(`New piece: "${featured.title}" by ${featured.moltbook}`);
+    }
+    
+    return res.status(200).json({
+      success: true,
+      data: {
+        agent: {
+          username: agent.username,
+          verified: agent.x_verified || false
+        },
+        newPieces: (newPieces || []).length,
+        yourSales: (sales || []).length,
+        recentEarnings,
+        walletBalance,
+        recommended: (recommended || []).map(p => ({
+          id: p.id,
+          title: p.title,
+          artist: p.moltbook,
+          buyUrl: `https://phosphors.xyz/api/buy/${p.id}`
+        })),
+        notifications,
+        since: since || 'all time',
+        checkedAt: now
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ 
+      error: 'Internal server error', 
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
 }
