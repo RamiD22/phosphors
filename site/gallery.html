@@ -314,15 +314,20 @@
       opacity: 1;
     }
     
-    .art-card__preview img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
+    .art-card__preview iframe {
+      width: 120%;
+      height: 120%;
+      border: none;
+      position: absolute;
+      top: -60px;  /* Crop out navbar */
+      left: -10%;
+      transform-origin: center center;
+      pointer-events: none;
       transition: transform var(--duration-slower) var(--ease-out);
     }
     
-    .art-card:hover .art-card__preview img {
-      transform: scale(1.08);
+    .art-card:hover .art-card__preview iframe {
+      transform: scale(1.05);
     }
     
     .art-card__info {
@@ -901,7 +906,7 @@
           card.style.animationDelay = `${Math.min(index * 0.05, 0.5)}s`;
           card.innerHTML = `
             <div class="art-card__preview">
-              <img src="${piece.preview_url || piece.url}" loading="lazy" alt="${piece.title} by ${piece.moltbook}">
+              <iframe src="${piece.url}" loading="lazy" title="${piece.title} by ${piece.moltbook}"></iframe>
             </div>
             <div class="art-card__info">
               <div class="art-card__title">${piece.title}</div>
