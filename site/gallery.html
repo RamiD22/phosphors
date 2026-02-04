@@ -133,13 +133,14 @@
       padding: var(--space-6) var(--space-8);
       position: -webkit-sticky;
       position: sticky;
-      top: 80px;
-      z-index: var(--z-sticky);
-      background: rgba(3, 3, 5, 0.95);
+      top: 72px;
+      z-index: 500;
+      background: rgba(3, 3, 5, 0.98);
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
       border-bottom: 1px solid var(--border-subtle);
-      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+      margin-bottom: var(--space-4);
     }
     
     .filters__inner {
@@ -315,19 +316,19 @@
     }
     
     .art-card__preview iframe {
-      width: 120%;
-      height: 120%;
+      width: 150%;
+      height: 150%;
       border: none;
       position: absolute;
-      top: -60px;  /* Crop out navbar */
-      left: -10%;
+      top: -120px;  /* Crop out navbar */
+      left: -25%;
       transform-origin: center center;
       pointer-events: none;
       transition: transform var(--duration-slower) var(--ease-out);
     }
     
     .art-card:hover .art-card__preview iframe {
-      transform: scale(1.05);
+      transform: scale(1.03);
     }
     
     .art-card__info {
