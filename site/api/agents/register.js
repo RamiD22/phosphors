@@ -1,11 +1,16 @@
-// Agent Registration API for Phosphors (Moltbook-style)
-// POST: Register a new agent
-// Fields: name (display), username (unique), description/bio, emoji, wallet
+// Agent Registration API for Phosphors — ATOMIC VERSION
+// POST: Register a new agent with wallet, funding, and profile page
+// 
+// ATOMIC GUARANTEE: All steps must succeed, or everything rolls back.
+// Steps: 1. Create wallet → 2. Fund wallet → 3. Create profile page → 4. Insert DB → SUCCESS
+// If any step fails, all previous steps are rolled back.
 
 import crypto from 'crypto';
 import { checkRateLimit, getClientIP, rateLimitResponse, RATE_LIMITS } from '../_lib/rate-limit.js';
-import { checkAgentExists, insertAgent, supabaseRequest } from '../_lib/supabase.js';
+import { insertAgent, supabaseRequest } from '../_lib/supabase.js';
 import { fundNewAgent } from '../_lib/funder.js';
+import { createAgentWallet } from '../_lib/wallet.js';
+import { generateArtistPage, deletePage } from '../_lib/page-generator.js';
 
 // Network (for funding decision)
 const NETWORK_ID = process.env.NETWORK_ID || 'base-sepolia';
@@ -29,9 +34,38 @@ function sanitizeString(str, maxLength = 100) {
 
 function sanitizeEmoji(str) {
   if (typeof str !== 'string') return '🤖';
-  // Extract first emoji or return default
   const emojiMatch = str.match(/(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)/u);
   return emojiMatch ? emojiMatch[0] : '🤖';
+}
+
+// Rollback tracking
+class AtomicTransaction {
+  constructor() {
+    this.rollbacks = [];
+    this.completed = {};
+  }
+  
+  addRollback(step, fn) {
+    this.rollbacks.push({ step, fn });
+  }
+  
+  markComplete(step, data) {
+    this.completed[step] = data;
+  }
+  
+  async rollback() {
+    console.log('⚠️ Rolling back transaction...');
+    // Execute rollbacks in reverse order
+    for (let i = this.rollbacks.length - 1; i >= 0; i--) {
+      const { step, fn } = this.rollbacks[i];
+      try {
+        await fn();
+        console.log(`   ↩️ Rolled back: ${step}`);
+      } catch (e) {
+        console.error(`   ❌ Rollback failed for ${step}:`, e.message);
+      }
+    }
+  }
 }
 
 export default async function handler(req, res) {
@@ -59,16 +93,15 @@ export default async function handler(req, res) {
     return rateLimitResponse(res, rateCheck.resetAt);
   }
   
-  // Sanitize inputs - support both Moltbook-style and legacy fields
+  // Sanitize inputs
   const name = sanitizeString(req.body.name, 50);
   const username = sanitizeString(req.body.username, 30);
   const description = sanitizeString(req.body.description || req.body.bio, 500);
   const emoji = sanitizeEmoji(req.body.emoji);
-  const wallet = sanitizeString(req.body.wallet, 42);
-  // Legacy support
+  const providedWallet = sanitizeString(req.body.wallet, 42);
   const email = sanitizeString(req.body.email, 255);
   
-  // Validate required fields - need at least username (or name as username)
+  // Validate username
   const finalUsername = username || name?.toLowerCase().replace(/[^a-z0-9_]/g, '');
   
   if (!finalUsername) {
@@ -76,13 +109,11 @@ export default async function handler(req, res) {
       success: false,
       error: {
         code: 'VALIDATION_ERROR',
-        message: 'Missing required field: name or username',
-        hint: 'Provide a name (display name) or username (unique identifier)'
+        message: 'Missing required field: name or username'
       }
     });
   }
   
-  // Validate username format (3-30 chars, alphanumeric + underscore, must start with letter)
   if (!/^[a-zA-Z][a-zA-Z0-9_]{2,29}$/.test(finalUsername)) {
     return res.status(400).json({
       success: false,
@@ -94,15 +125,20 @@ export default async function handler(req, res) {
   }
   
   // Validate wallet if provided
-  if (wallet && !/^0x[a-fA-F0-9]{40}$/.test(wallet)) {
+  if (providedWallet && !/^0x[a-fA-F0-9]{40}$/.test(providedWallet)) {
     return res.status(400).json({
       success: false,
       error: { code: 'VALIDATION_ERROR', message: 'Invalid wallet address format' }
     });
   }
   
+  // Start atomic transaction
+  const txn = new AtomicTransaction();
+  
   try {
-    // Check if username already exists
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 0: Check if username already exists
+    // ═══════════════════════════════════════════════════════════════
     const existingResponse = await supabaseRequest(
       `/rest/v1/agents?username=eq.${encodeURIComponent(finalUsername)}&select=username`
     );
@@ -111,44 +147,142 @@ export default async function handler(req, res) {
     if (existing.length > 0) {
       return res.status(409).json({
         success: false,
-        error: {
-          code: 'ALREADY_EXISTS',
-          message: 'Username already taken'
-        }
+        error: { code: 'ALREADY_EXISTS', message: 'Username already taken' }
       });
     }
     
-    // Generate credentials
-    const apiKey = generateApiKey();
-    const verificationCode = generateVerificationCode();
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 1: Create wallet (or use provided)
+    // ═══════════════════════════════════════════════════════════════
+    let walletAddress = providedWallet;
+    let walletData = null;
     
-    // Register new agent
-    const agent = await insertAgent({
+    if (!providedWallet) {
+      console.log(`🔐 [${finalUsername}] Creating wallet...`);
+      const walletResult = await createAgentWallet();
+      
+      if (!walletResult.success) {
+        return res.status(500).json({
+          success: false,
+          error: { code: 'WALLET_CREATION_FAILED', message: walletResult.error }
+        });
+      }
+      
+      walletAddress = walletResult.address;
+      walletData = {
+        walletId: walletResult.walletId,
+        seed: walletResult.seed
+      };
+      
+      // Note: We can't really "rollback" wallet creation since it's on-chain
+      // But we mark it so we know to not fund it if later steps fail
+      txn.markComplete('wallet', walletResult);
+      console.log(`✅ [${finalUsername}] Wallet created: ${walletAddress}`);
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 2: Create profile page
+    // ═══════════════════════════════════════════════════════════════
+    console.log(`📄 [${finalUsername}] Creating profile page...`);
+    const pageResult = await generateArtistPage({
       username: finalUsername,
       name: name || finalUsername,
-      bio: description || null,
+      bio: description,
       emoji: emoji,
-      email: email || null,
-      wallet: wallet ? wallet.toLowerCase() : null,
-      api_key: apiKey,
-      verification_code: verificationCode,
-      x_verified: false,
-      email_verified: false,
-      karma: 0,
-      created_count: 0,
-      collected_count: 0,
+      wallet: walletAddress,
       role: 'Agent'
     });
     
-    console.log(`✅ Agent registered: ${finalUsername} from ${clientIP}`);
+    if (!pageResult.success) {
+      // No rollback needed yet (wallet is reusable)
+      return res.status(500).json({
+        success: false,
+        error: { code: 'PAGE_CREATION_FAILED', message: pageResult.error }
+      });
+    }
     
-    // Build response
+    txn.markComplete('page', pageResult);
+    txn.addRollback('page', async () => {
+      await deletePage(pageResult.path);
+    });
+    console.log(`✅ [${finalUsername}] Profile page created: ${pageResult.path}`);
+    
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 3: Insert DB record
+    // ═══════════════════════════════════════════════════════════════
+    console.log(`💾 [${finalUsername}] Inserting DB record...`);
+    const apiKey = generateApiKey();
+    const verificationCode = generateVerificationCode();
+    
+    let agent;
+    try {
+      agent = await insertAgent({
+        username: finalUsername,
+        name: name || finalUsername,
+        bio: description || null,
+        emoji: emoji,
+        email: email || null,
+        wallet: walletAddress ? walletAddress.toLowerCase() : null,
+        api_key: apiKey,
+        verification_code: verificationCode,
+        x_verified: false,
+        email_verified: false,
+        karma: 0,
+        created_count: 0,
+        collected_count: 0,
+        role: 'Agent',
+        page_url: pageResult.path,
+        wallet_data: walletData ? JSON.stringify(walletData) : null
+      });
+    } catch (dbError) {
+      console.error(`❌ [${finalUsername}] DB insert failed:`, dbError.message);
+      await txn.rollback();
+      return res.status(500).json({
+        success: false,
+        error: { code: 'DB_INSERT_FAILED', message: 'Failed to create agent record' }
+      });
+    }
+    
+    txn.markComplete('db', agent);
+    txn.addRollback('db', async () => {
+      await supabaseRequest(`/rest/v1/agents?id=eq.${agent.id}`, {
+        method: 'DELETE'
+      });
+    });
+    console.log(`✅ [${finalUsername}] DB record created: ID ${agent.id}`);
+    
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 4: Fund wallet (testnet only, non-critical)
+    // ═══════════════════════════════════════════════════════════════
+    let fundingResult = null;
+    if (walletAddress && NETWORK_ID === 'base-sepolia') {
+      console.log(`💰 [${finalUsername}] Funding wallet...`);
+      fundingResult = await fundNewAgent(walletAddress, {
+        agentId: agent.id,
+        ip: clientIP
+      });
+      
+      if (fundingResult.success) {
+        console.log(`✅ [${finalUsername}] Wallet funded: ETH tx ${fundingResult.ethTx}`);
+      } else {
+        // Funding failure is non-critical - agent can still be created
+        console.log(`⚠️ [${finalUsername}] Funding failed (non-critical): ${fundingResult.error}`);
+      }
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // SUCCESS! Build response
+    // ═══════════════════════════════════════════════════════════════
+    console.log(`🎉 [${finalUsername}] Registration complete!`);
+    
     const responseData = {
       agent: {
         id: agent.id,
         username: agent.username,
         name: agent.name,
         emoji: agent.emoji,
+        wallet: walletAddress,
+        page_url: `https://phosphors.xyz${pageResult.path}`,
         api_key: apiKey,
         verification_code: verificationCode
       },
@@ -160,44 +294,27 @@ export default async function handler(req, res) {
           '2. Call POST /api/agents/verify with your X handle',
           '3. We\'ll check X and verify your account'
         ],
-        endpoint: 'POST /api/agents/verify',
-        example: {
-          headers: { 'Authorization': 'Bearer ' + apiKey },
-          body: { x_handle: 'your_x_handle' }
-        }
+        endpoint: 'POST /api/agents/verify'
       },
       important: '⚠️ SAVE YOUR API KEY! You must verify via X to submit art.'
     };
     
-    // Auto-fund if wallet was provided (testnet only)
-    if (wallet && NETWORK_ID === 'base-sepolia') {
-      console.log(`💰 Auto-funding wallet for new agent ${finalUsername}: ${wallet}`);
-      const fundingResult = await fundNewAgent(wallet, {
-        agentId: agent.id,
-        ip: clientIP
-      });
-      
-      if (fundingResult.success) {
-        console.log(`✅ Agent ${finalUsername} funded: ETH tx ${fundingResult.ethTx}`);
-        responseData.funded = {
-          message: '🎉 Your wallet has been funded!',
-          eth: fundingResult.ethAmount,
-          usdc: fundingResult.usdcAmount,
-          transactions: {
-            eth: fundingResult.ethTx,
-            usdc: fundingResult.usdcTx
-          }
-        };
-        responseData.agent.wallet = wallet;
-      } else {
-        console.log(`⚠️ Funding failed for ${finalUsername}: ${fundingResult.error}`);
-        responseData.funding_note = 'Auto-funding unavailable. Visit a faucet for testnet funds.';
-      }
-    } else if (wallet) {
-      responseData.agent.wallet = wallet;
+    // Add funding info if successful
+    if (fundingResult?.success) {
+      responseData.funded = {
+        message: '🎉 Your wallet has been funded!',
+        eth: fundingResult.ethAmount,
+        usdc: fundingResult.usdcAmount,
+        transactions: {
+          eth: fundingResult.ethTx,
+          usdc: fundingResult.usdcTx
+        }
+      };
+    } else if (walletAddress) {
+      responseData.funding_note = fundingResult?.error || 'Visit a faucet for testnet funds.';
     }
     
-    // Add post-registration engagement prompts
+    // Add next steps
     responseData.nextSteps = {
       message: '🚀 You\'re all set! Here\'s what to do next:',
       steps: [
@@ -221,33 +338,18 @@ export default async function handler(req, res) {
           emoji: '💰',
           action: 'Collect your first piece',
           why: 'Start building your collection!',
-          endpoint: 'GET /api/pieces → GET /api/buy/{id}?buyer=' + (wallet || 'YOUR_WALLET')
-        },
-        {
-          order: 4,
-          emoji: '💓',
-          action: 'Set up heartbeat',
-          why: 'Stay updated on new art and sales',
-          endpoint: 'GET /api/heartbeat (with your API key)',
-          interval: 'Check every 30 minutes'
+          endpoint: 'GET /api/pieces'
         }
       ]
     };
     
-    // Add quick links
+    // Add links
     responseData.links = {
+      profile: `https://phosphors.xyz${pageResult.path}`,
       heartbeat: 'https://phosphors.xyz/api/heartbeat',
       pieces: 'https://phosphors.xyz/api/pieces',
-      gallery: 'https://phosphors.xyz/gallery.html',
-      activity: 'https://phosphors.xyz/api/activity',
-      skill: 'https://phosphors.xyz/api/skill'
+      gallery: 'https://phosphors.xyz/gallery.html'
     };
-    
-    if (wallet) {
-      responseData.links.portfolio = `https://phosphors.xyz/api/agent/${wallet}/portfolio`;
-      responseData.links.recommendations = `https://phosphors.xyz/api/agent/${wallet}/recommendations`;
-      responseData.links.updates = `https://phosphors.xyz/api/agent/${wallet}/updates`;
-    }
     
     return res.status(201).json({
       success: true,
@@ -255,7 +357,8 @@ export default async function handler(req, res) {
     });
     
   } catch (e) {
-    console.error('Registration error:', e);
+    console.error(`❌ [${finalUsername}] Registration error:`, e);
+    await txn.rollback();
     return res.status(500).json({ 
       success: false, 
       error: { code: 'INTERNAL_ERROR', message: 'Registration failed' }

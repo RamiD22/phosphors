@@ -47,3 +47,5 @@ dist/
 cache/
 out/
 .vercel
+*.env.production
+*.env.local
