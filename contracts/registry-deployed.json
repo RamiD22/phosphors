@@ -1,0 +1,11 @@
+{
+  "name": "PurchaseRegistry",
+  "address": "0x9663Bf8f68b29C4840E522eeDdb6005004F7c7a4",
+  "deployer": "0x900a5007f615A1659845796730ff9225E3b1765a",
+  "recorder": "0xc27b70A5B583C6E3fF90CcDC4577cC4f1f598281",
+  "deployTx": "0x85f3547f591372069e8abf3568876b48d007f776f430332130a75b036870f5de",
+  "deployedAt": "2026-02-04T13:18:00Z",
+  "network": "base-sepolia",
+  "chainId": 84532,
+  "explorer": "https://sepolia.basescan.org/address/0x9663Bf8f68b29C4840E522eeDdb6005004F7c7a4"
+}
