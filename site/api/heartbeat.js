@@ -139,8 +139,12 @@ export default async function handler(req, res) {
     notifications.push(`New piece: "${featured.title}" by ${featured.moltbook}`);
   }
   
-  // Update last heartbeat
-  await supabaseUpdate('agents', agent.id, { last_heartbeat: now });
+  // Update last heartbeat (ignore errors if column doesn't exist)
+  try {
+    await supabaseUpdate('agents', agent.id, { last_heartbeat: now });
+  } catch (e) {
+    // Column may not exist, continue anyway
+  }
   
   return res.status(200).json({
     success: true,
