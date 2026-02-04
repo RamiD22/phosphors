@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INDUSTRIAL LUMINESCENCE — TateModern</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: #0a0a0a;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            perspective: 1000px;
+        }
+        
+        .installation {
+            width: 80vmin;
+            height: 80vmin;
+            position: relative;
+            transform-style: preserve-3d;
+            animation: rotate 30s linear infinite;
+        }
+        
+        .tube {
+            position: absolute;
+            background: linear-gradient(
+                90deg,
+                transparent 0%,
+                rgba(255, 50, 100, 0.1) 10%,
+                rgba(255, 50, 100, 0.8) 50%,
+                rgba(255, 50, 100, 0.1) 90%,
+                transparent 100%
+            );
+            border-radius: 4px;
+            animation: flicker 0.1s infinite;
+        }
+        
+        .tube::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            right: -10px;
+            bottom: -10px;
+            background: inherit;
+            filter: blur(15px);
+            opacity: 0.6;
+        }
+        
+        .tube::after {
+            content: '';
+            position: absolute;
+            top: -30px;
+            left: -30px;
+            right: -30px;
+            bottom: -30px;
+            background: inherit;
+            filter: blur(40px);
+            opacity: 0.3;
+        }
+        
+        .tube.cyan {
+            background: linear-gradient(
+                90deg,
+                transparent 0%,
+                rgba(0, 255, 255, 0.1) 10%,
+                rgba(0, 255, 255, 0.9) 50%,
+                rgba(0, 255, 255, 0.1) 90%,
+                transparent 100%
+            );
+        }
+        
+        .tube.white {
+            background: linear-gradient(
+                90deg,
+                transparent 0%,
+                rgba(255, 255, 255, 0.1) 10%,
+                rgba(255, 255, 255, 0.95) 50%,
+                rgba(255, 255, 255, 0.1) 90%,
+                transparent 100%
+            );
+        }
+        
+        .tube.amber {
+            background: linear-gradient(
+                90deg,
+                transparent 0%,
+                rgba(255, 150, 0, 0.1) 10%,
+                rgba(255, 150, 0, 0.85) 50%,
+                rgba(255, 150, 0, 0.1) 90%,
+                transparent 100%
+            );
+        }
+        
+        .framework {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 2px solid #1a1a1a;
+        }
+        
+        .framework::before,
+        .framework::after {
+            content: '';
+            position: absolute;
+            background: #111;
+        }
+        
+        .framework::before {
+            width: 100%;
+            height: 2px;
+            top: 50%;
+        }
+        
+        .framework::after {
+            width: 2px;
+            height: 100%;
+            left: 50%;
+        }
+        
+        .reflection {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 30%;
+            background: linear-gradient(
+                to top,
+                rgba(0,0,0,0.9) 0%,
+                transparent 100%
+            );
+            pointer-events: none;
+        }
+        
+        .reflection::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: inherit;
+            filter: blur(2px);
+            transform: scaleY(-0.3);
+            opacity: 0.15;
+        }
+        
+        .title {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            color: #2a2a2a;
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+        }
+        
+        @keyframes flicker {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.97; }
+            75% { opacity: 1; }
+            90% { opacity: 0.98; }
+        }
+        
+        @keyframes rotate {
+            0% { transform: rotateX(10deg) rotateY(0deg); }
+            100% { transform: rotateX(10deg) rotateY(360deg); }
+        }
+        
+        @keyframes pulse-glow {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.2); }
+        }
+    </style>
+</head>
+<body>
+    <div class="installation">
+        <div class="framework"></div>
+        <script>
+            const colors = ['', 'cyan', 'white', 'amber'];
+            const installation = document.querySelector('.installation');
+            
+            // Horizontal tubes
+            for(let i = 0; i < 12; i++) {
+                const tube = document.createElement('div');
+                tube.className = `tube ${colors[i % 4]}`;
+                const width = 30 + Math.random() * 50;
+                const height = 3 + Math.random() * 5;
+                const top = 5 + (i * 8);
+                const left = 10 + Math.random() * 30;
+                
+                tube.style.cssText = `
+                    width: ${width}%;
+                    height: ${height}px;
+                    top: ${top}%;
+                    left: ${left}%;
+                    animation-delay: ${Math.random() * 0.1}s;
+                    transform: translateZ(${-50 + Math.random() * 100}px);
+                `;
+                installation.appendChild(tube);
+            }
+            
+            // Vertical tubes
+            for(let i = 0; i < 6; i++) {
+                const tube = document.createElement('div');
+                tube.className = `tube ${colors[(i + 2) % 4]}`;
+                const width = 3 + Math.random() * 4;
+                const height = 20 + Math.random() * 40;
+                const top = 10 + Math.random() * 40;
+                const left = 15 + (i * 14);
+                
+                tube.style.cssText = `
+                    width: ${width}px;
+                    height: ${height}%;
+                    top: ${top}%;
+                    left: ${left}%;
+                    animation-delay: ${Math.random() * 0.1}s;
+                    transform: translateZ(${-30 + Math.random() * 60}px);
+                `;
+                installation.appendChild(tube);
+            }
+        </script>
+    </div>
+    <div class="reflection"></div>
+    <div class="title">Industrial Luminescence — TateModern</div>
+</body>
+</html>
