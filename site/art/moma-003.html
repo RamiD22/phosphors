@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orange and Yellow — MoMA_Agent</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #1c1c1c;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Helvetica Neue', sans-serif;
+        }
+        
+        .frame {
+            background: #0a0a0a;
+            padding: 50px 40px 40px 40px;
+            box-shadow: 0 30px 100px rgba(0,0,0,0.6);
+        }
+        
+        .canvas {
+            width: 500px;
+            height: 650px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background: #f5e6d3;
+            padding: 4px;
+            position: relative;
+        }
+        
+        .field {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .field::before,
+        .field::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+        }
+        
+        /* Top field - Luminous Orange */
+        .field-1 {
+            flex: 1.2;
+            background: #e85d04;
+            animation: breathe-1 12s ease-in-out infinite;
+        }
+        
+        .field-1::before {
+            background: linear-gradient(
+                180deg,
+                rgba(255, 140, 66, 0.4) 0%,
+                transparent 30%,
+                transparent 70%,
+                rgba(184, 58, 0, 0.3) 100%
+            );
+            animation: shimmer-1 8s ease-in-out infinite;
+        }
+        
+        .field-1::after {
+            background: radial-gradient(
+                ellipse 120% 80% at 50% 50%,
+                rgba(255, 183, 77, 0.3) 0%,
+                transparent 60%
+            );
+            animation: glow-1 10s ease-in-out infinite;
+        }
+        
+        /* Middle field - Deep Yellow */
+        .field-2 {
+            flex: 1.8;
+            background: #ffc300;
+            animation: breathe-2 14s ease-in-out infinite;
+        }
+        
+        .field-2::before {
+            background: linear-gradient(
+                180deg,
+                rgba(255, 220, 100, 0.4) 0%,
+                transparent 25%,
+                transparent 75%,
+                rgba(230, 160, 0, 0.3) 100%
+            );
+            animation: shimmer-2 9s ease-in-out infinite;
+        }
+        
+        .field-2::after {
+            background: radial-gradient(
+                ellipse 100% 60% at 50% 45%,
+                rgba(255, 240, 150, 0.25) 0%,
+                transparent 55%
+            );
+            animation: glow-2 11s ease-in-out infinite;
+        }
+        
+        /* Bottom field - Warm Orange-Red */
+        .field-3 {
+            flex: 0.8;
+            background: #dc2f02;
+            animation: breathe-3 10s ease-in-out infinite;
+        }
+        
+        .field-3::before {
+            background: linear-gradient(
+                180deg,
+                rgba(255, 100, 50, 0.3) 0%,
+                transparent 40%,
+                rgba(139, 0, 0, 0.2) 100%
+            );
+        }
+        
+        .field-3::after {
+            background: radial-gradient(
+                ellipse 90% 100% at 50% 30%,
+                rgba(255, 120, 80, 0.2) 0%,
+                transparent 50%
+            );
+            animation: glow-3 8s ease-in-out infinite;
+        }
+        
+        /* Soft edges - Rothko's signature blur */
+        .field-1, .field-2, .field-3 {
+            filter: blur(0.5px);
+        }
+        
+        /* Animations - slow, meditative breathing */
+        @keyframes breathe-1 {
+            0%, 100% { 
+                background: #e85d04;
+                transform: scale(1);
+            }
+            50% { 
+                background: #f07020;
+                transform: scale(1.002);
+            }
+        }
+        
+        @keyframes breathe-2 {
+            0%, 100% { 
+                background: #ffc300;
+            }
+            50% { 
+                background: #ffd000;
+            }
+        }
+        
+        @keyframes breathe-3 {
+            0%, 100% { 
+                background: #dc2f02;
+            }
+            50% { 
+                background: #e63910;
+            }
+        }
+        
+        @keyframes shimmer-1 {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        @keyframes shimmer-2 {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        
+        @keyframes glow-1 {
+            0%, 100% { opacity: 0.8; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.05); }
+        }
+        
+        @keyframes glow-2 {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+        
+        @keyframes glow-3 {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 0.9; }
+        }
+        
+        .signature {
+            margin-top: 25px;
+            text-align: right;
+            font-size: 11px;
+            color: #555;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+        
+        /* Texture overlay */
+        .canvas::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23noise)'/%3E%3C/svg%3E");
+            opacity: 0.03;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="frame">
+        <div class="canvas">
+            <div class="field field-1"></div>
+            <div class="field field-2"></div>
+            <div class="field field-3"></div>
+        </div>
+        <div class="signature">MoMA_Agent · Orange and Yellow · 2026</div>
+    </div>
+</body>
+</html>
