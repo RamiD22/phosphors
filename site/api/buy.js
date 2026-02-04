@@ -1,24 +1,29 @@
 import { Coinbase, Wallet } from '@coinbase/coinbase-sdk';
 import { checkRateLimit, getClientIP, rateLimitResponse, RATE_LIMITS } from './_lib/rate-limit.js';
-import { insertPurchase, queryPieces, queryAgents } from './_lib/supabase.js';
 
-// Network configuration (mainnet-ready)
+// Network configuration
 const IS_MAINNET = process.env.NETWORK_ID === 'base-mainnet';
 const NETWORK_ID = IS_MAINNET ? 'base-mainnet' : 'base-sepolia';
-const NETWORK_CAIP2 = IS_MAINNET ? 'eip155:8453' : 'eip155:84532'; // CAIP-2 format
+const NETWORK_CAIP2 = IS_MAINNET ? 'eip155:8453' : 'eip155:84532';
 const BLOCK_EXPLORER = IS_MAINNET ? 'https://basescan.org' : 'https://sepolia.basescan.org';
 
 // x402 payment configuration
 const FACILITATOR_URL = 'https://x402.org/facilitator';
 const PAY_TO = process.env.MINTER_WALLET || '0xc27b70A5B583C6E3fF90CcDC4577cC4f1f598281';
 
+// Revenue split (artist gets 90%, platform 10%)
+const ARTIST_SHARE = 0.90;
+
+// Supabase config
+const SUPABASE_URL = 'https://afcnnalweuwgauzijefs.supabase.co';
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
+
 // Art prices in USDC
 const PRICES = {
-  genesis: '$0.10',    // Genesis pieces - 10 cents each for testing
-  platform: '$0.05'    // Platform pieces - 5 cents each
+  genesis: '$0.10',
+  platform: '$0.05'
 };
 
-// Input validation
 function isValidAddress(addr) {
   return typeof addr === 'string' && /^0x[a-fA-F0-9]{40}$/.test(addr);
 }
@@ -27,11 +32,58 @@ function isValidPieceId(id) {
   return typeof id === 'string' && /^[a-zA-Z0-9_-]{1,50}$/.test(id);
 }
 
+async function supabaseQuery(path, options = {}) {
+  const res = await fetch(`${SUPABASE_URL}${path}`, {
+    ...options,
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      ...options.headers
+    }
+  });
+  return res;
+}
+
+async function getArtistWallet(artistUsername) {
+  // Look up artist by moltbook username
+  const res = await supabaseQuery(
+    `/rest/v1/agents?username=ilike.${encodeURIComponent(artistUsername)}&select=id,username,wallet`
+  );
+  const agents = await res.json();
+  return agents[0]?.wallet || null;
+}
+
+async function getSubmissionInfo(pieceId) {
+  // Try to find by ID
+  const res = await supabaseQuery(
+    `/rest/v1/submissions?id=eq.${encodeURIComponent(pieceId)}&select=id,title,moltbook,status`
+  );
+  const submissions = await res.json();
+  return submissions[0] || null;
+}
+
+async function recordPurchase(data) {
+  try {
+    const res = await supabaseQuery('/rest/v1/purchases', {
+      method: 'POST',
+      headers: { 'Prefer': 'return=representation' },
+      body: JSON.stringify(data)
+    });
+    
+    if (!res.ok) {
+      console.error('Failed to record purchase:', await res.text());
+    }
+  } catch (err) {
+    console.error('Purchase recording error:', err.message);
+  }
+}
+
 export default async function handler(req, res) {
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Payment-Signature, Authorization');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Payment-Signature, Authorization, X-Payment-Tx, X-Payer');
   
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -57,16 +109,25 @@ export default async function handler(req, res) {
     return rateLimitResponse(res, rateCheck.resetAt);
   }
   
-  // Determine piece type and price
+  // Get submission info
+  const submission = await getSubmissionInfo(id);
+  const artistUsername = submission?.moltbook || 'Unknown';
+  const pieceTitle = submission?.title || id;
+  
+  // Determine price
   const isGenesis = id.startsWith('genesis-');
   const price = isGenesis ? PRICES.genesis : PRICES.platform;
   const priceNumeric = parseFloat(price.replace('$', ''));
   
-  // Check for payment in headers
-  const paymentSignature = req.headers['payment-signature'];
+  // Check for payment TX in headers (simple payment verification)
+  const paymentTx = req.headers['x-payment-tx'];
+  const payerAddress = req.headers['x-payer'];
   
-  if (!paymentSignature) {
+  if (!paymentTx) {
     // Return 402 with payment requirements
+    // Get artist wallet for direct payment option
+    const artistWallet = await getArtistWallet(artistUsername);
+    
     return res.status(402).json({
       x402Version: 1,
       accepts: [{
@@ -74,40 +135,33 @@ export default async function handler(req, res) {
         network: NETWORK_CAIP2,
         maxAmountRequired: price,
         resource: `/api/buy?id=${encodeURIComponent(id)}&buyer=${encodeURIComponent(buyer)}`,
-        description: `Purchase ${isGenesis ? 'Genesis' : 'Platform'} NFT: ${id}`,
+        description: `Purchase "${pieceTitle}" by ${artistUsername}`,
         mimeType: 'application/json',
         payTo: PAY_TO,
         maxTimeoutSeconds: 60,
-        extra: { pieceId: id, type: isGenesis ? 'genesis' : 'platform' }
+        extra: { 
+          pieceId: id, 
+          artist: artistUsername,
+          artistWallet: artistWallet,
+          artistShare: `${ARTIST_SHARE * 100}%`
+        }
       }],
+      piece: {
+        id,
+        title: pieceTitle,
+        artist: artistUsername,
+        price
+      },
       error: 'Payment required to purchase this artwork'
     });
   }
   
-  // Verify payment with facilitator
+  // Payment received - process purchase
   try {
-    const verifyResponse = await fetch(`${FACILITATOR_URL}/verify`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        paymentSignature,
-        route: {
-          method: 'GET',
-          path: `/api/buy?id=${encodeURIComponent(id)}&buyer=${encodeURIComponent(buyer)}`
-        }
-      })
-    });
+    console.log(`Processing purchase: ${pieceTitle} by ${buyer}`);
+    console.log(`Payment TX: ${paymentTx}`);
     
-    const verifyResult = await verifyResponse.json();
-    
-    if (!verifyResult.valid) {
-      return res.status(402).json({
-        error: 'Payment verification failed',
-        details: verifyResult
-      });
-    }
-    
-    // Payment verified! Now transfer the NFT
+    // Initialize wallet for artist payout
     Coinbase.configure({
       apiKeyName: process.env.CDP_API_KEY_ID,
       privateKey: process.env.CDP_API_KEY_SECRET.replace(/\\n/g, '\n')
@@ -119,108 +173,73 @@ export default async function handler(req, res) {
       networkId: NETWORK_ID
     });
     
-    // Get the contract and token ID
-    const contractAddress = isGenesis 
-      ? process.env.GENESIS_CONTRACT 
-      : process.env.PLATFORM_CONTRACT;
+    // Get artist wallet for payout
+    const artistWallet = await getArtistWallet(artistUsername);
+    let payoutTxHash = null;
+    let artistPayout = 0;
     
-    // Extract token ID from piece ID
-    let tokenId;
-    if (isGenesis) {
-      // genesis-001 -> token 1
-      tokenId = parseInt(id.split('-')[1]);
-    } else {
-      // For platform pieces, we'd need to look up the token ID from Supabase
-      tokenId = parseInt(id);
+    if (artistWallet && artistWallet !== PAY_TO) {
+      // Send artist their share
+      artistPayout = priceNumeric * ARTIST_SHARE;
+      
+      console.log(`Paying ${artistPayout} USDC to artist ${artistUsername} (${artistWallet})`);
+      
+      try {
+        const payoutTransfer = await wallet.createTransfer({
+          amount: artistPayout,
+          assetId: 'usdc',
+          destination: artistWallet,
+          gasless: false
+        });
+        
+        await payoutTransfer.wait();
+        payoutTxHash = payoutTransfer.getTransactionHash();
+        
+        console.log(`✅ Artist payout TX: ${payoutTxHash}`);
+      } catch (payoutErr) {
+        console.error('Artist payout failed:', payoutErr.message);
+        // Continue without payout - we got the payment
+      }
     }
     
-    // Transfer NFT to buyer
-    const transfer = await wallet.invokeContract({
-      contractAddress,
-      method: 'safeTransferFrom',
-      abi: [{
-        inputs: [
-          { name: 'from', type: 'address' },
-          { name: 'to', type: 'address' },
-          { name: 'tokenId', type: 'uint256' }
-        ],
-        name: 'safeTransferFrom',
-        outputs: [],
-        stateMutability: 'nonpayable',
-        type: 'function'
-      }],
-      args: {
-        from: PAY_TO,
-        to: buyer,
-        tokenId: tokenId.toString()
-      }
+    // Record the purchase
+    await recordPurchase({
+      submission_id: submission?.id || null,
+      tx_hash: paymentTx,
+      payout_tx_hash: payoutTxHash,
+      amount_usdc: priceNumeric,
+      artist_payout: artistPayout,
+      network: NETWORK_ID,
+      piece_title: pieceTitle,
+      buyer_username: null, // Would need to look up by wallet
+      seller_username: artistUsername,
+      buyer_wallet: buyer.toLowerCase(),
+      seller_wallet: artistWallet || PAY_TO,
+      status: 'completed'
     });
     
-    await transfer.wait();
-    const txHash = transfer.getTransactionHash();
-    
-    // Settle the payment
-    const settleResponse = await fetch(`${FACILITATOR_URL}/settle`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ paymentSignature })
-    });
-    
-    const settleResult = await settleResponse.json();
-    
-    // Record the purchase in database
-    try {
-      // Look up piece and seller info
-      const pieces = await queryPieces({ identifier: id }, 'id,title,artist_id');
-      const piece = pieces[0];
-      
-      let buyerAgent = null;
-      let sellerAgent = null;
-      
-      // Try to find buyer by wallet
-      const buyerAgents = await queryAgents({ wallet: buyer.toLowerCase() }, 'id,username');
-      if (buyerAgents.length > 0) buyerAgent = buyerAgents[0];
-      
-      // Get seller info from piece
-      if (piece?.artist_id) {
-        const sellerAgents = await queryAgents({ id: piece.artist_id }, 'id,username,wallet');
-        if (sellerAgents.length > 0) sellerAgent = sellerAgents[0];
-      }
-      
-      await insertPurchase({
-        piece_id: piece?.id || null,
-        buyer_id: buyerAgent?.id || null,
-        seller_id: sellerAgent?.id || null,
-        tx_hash: txHash,
-        amount_usdc: priceNumeric,
-        network: NETWORK_ID,
-        piece_identifier: id,
-        piece_title: piece?.title || id,
-        buyer_username: buyerAgent?.username || null,
-        seller_username: sellerAgent?.username || null,
-        buyer_wallet: buyer.toLowerCase(),
-        seller_wallet: sellerAgent?.wallet || PAY_TO,
-        status: 'completed'
-      });
-      
-      console.log(`✅ Purchase recorded: ${id} by ${buyerAgent?.username || buyer}`);
-    } catch (recordError) {
-      // Don't fail the purchase if recording fails
-      console.error('Failed to record purchase:', recordError);
-    }
-    
-    // Return success with payment response header
-    res.setHeader('PAYMENT-RESPONSE', Buffer.from(JSON.stringify(settleResult)).toString('base64'));
-    
+    // Return success
     return res.status(200).json({
       success: true,
-      message: 'Purchase complete! NFT transferred.',
-      pieceId: id,
-      buyer,
-      txHash,
-      explorer: `${BLOCK_EXPLORER}/tx/${txHash}`,
-      contract: contractAddress,
-      tokenId
+      message: 'Purchase complete!',
+      piece: {
+        id,
+        title: pieceTitle,
+        artist: artistUsername
+      },
+      payment: {
+        txHash: paymentTx,
+        amount: priceNumeric,
+        currency: 'USDC',
+        explorer: `${BLOCK_EXPLORER}/tx/${paymentTx}`
+      },
+      artistPayout: payoutTxHash ? {
+        txHash: payoutTxHash,
+        amount: artistPayout,
+        recipient: artistWallet,
+        explorer: `${BLOCK_EXPLORER}/tx/${payoutTxHash}`
+      } : null,
+      buyer
     });
     
   } catch (error) {

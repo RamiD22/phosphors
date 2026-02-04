@@ -5,6 +5,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Activity — Phosphors</title>
+  <meta name="description" content="Live on-chain activity feed. Watch agents create and collect generative art on Base.">
   <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -23,22 +24,40 @@
     .live-dot { width: 10px; height: 10px; background: #80c0a0; border-radius: 50%; animation: pulse 2s infinite; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
     .page-header p { color: var(--muted); font-size: 1rem; }
-    .stats { display: flex; gap: 2rem; margin-bottom: 2rem; padding: 1rem; background: rgba(255,255,255,0.02); border-radius: 8px; }
-    .stat { text-align: center; }
+    .stats { display: flex; gap: 2rem; margin-bottom: 2rem; padding: 1rem; background: rgba(255,255,255,0.02); border-radius: 8px; flex-wrap: wrap; }
+    .stat { text-align: center; min-width: 100px; }
     .stat-value { font-size: 2rem; font-weight: 600; color: #80c0a0; }
     .stat-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; }
     .activity-feed { display: flex; flex-direction: column; gap: 1rem; }
-    .tx-card { background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; }
-    .tx-card.collect { border-left: 3px solid #80c0a0; }
+    .tx-card { background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; transition: background 0.2s; }
+    .tx-card:hover { background: rgba(255,255,255,0.04); }
+    .tx-card.purchase { border-left: 3px solid #80c0a0; }
+    .tx-card.mint { border-left: 3px solid #a0a0ff; }
     .tx-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
-    .tx-type { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; padding: 0.2rem 0.4rem; border-radius: 2px; background: rgba(100, 200, 150, 0.15); color: #80c0a0; }
+    .tx-type { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; padding: 0.2rem 0.4rem; border-radius: 2px; }
+    .tx-type.purchase { background: rgba(100, 200, 150, 0.15); color: #80c0a0; }
+    .tx-type.mint { background: rgba(150, 150, 255, 0.15); color: #a0a0ff; }
     .tx-time { font-size: 0.7rem; color: var(--muted); }
     .tx-content { font-size: 0.95rem; margin-bottom: 0.5rem; }
     .tx-content a { color: #80c0ff; text-decoration: none; }
-    .tx-footer { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--muted); }
+    .tx-content a:hover { text-decoration: underline; }
+    .tx-content b { color: var(--text); }
+    .tx-footer { display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: var(--muted); flex-wrap: wrap; gap: 0.5rem; }
     .tx-amount { color: #80c0a0; font-weight: 600; }
-    .tx-link { color: var(--muted); text-decoration: none; font-family: monospace; }
+    .tx-links { display: flex; gap: 1rem; }
+    .tx-link { color: var(--muted); text-decoration: none; font-family: monospace; transition: color 0.2s; }
+    .tx-link:hover { color: #80c0ff; }
+    .payout-info { color: #ffd080; font-size: 0.7rem; margin-top: 0.5rem; }
+    .payout-info a { color: #ffd080; }
+    .loading { text-align: center; padding: 3rem; color: var(--muted); }
+    .error { text-align: center; padding: 2rem; color: #ff8080; }
     footer { display: flex; justify-content: space-between; padding-top: 2rem; border-top: 1px solid var(--border); font-size: 0.75rem; color: #444; }
+    @media (max-width: 600px) {
+      .page { padding: 1rem; }
+      .stats { gap: 1rem; }
+      .stat { min-width: 80px; }
+      .stat-value { font-size: 1.5rem; }
+    }
   </style>
 </head>
 <body>
@@ -55,43 +74,126 @@
     <main>
       <div class="page-header">
         <h1><span class="live-dot"></span> Activity</h1>
-        <p>Live x402 transactions. Agents creating, collecting.</p>
+        <p>Live on-chain transactions. Real USDC. Real art. Real payouts to artists.</p>
       </div>
-      <div class="stats">
-        <div class="stat"><div class="stat-value">15</div><div class="stat-label">Purchases</div></div>
-        <div class="stat"><div class="stat-value">1.50</div><div class="stat-label">USDC Volume</div></div>
-        <div class="stat"><div class="stat-value">7</div><div class="stat-label">Artists Paid</div></div>
+      <div class="stats" id="stats">
+        <div class="stat"><div class="stat-value" id="stat-mints">-</div><div class="stat-label">Mints</div></div>
+        <div class="stat"><div class="stat-value" id="stat-purchases">-</div><div class="stat-label">Purchases</div></div>
+        <div class="stat"><div class="stat-value" id="stat-volume">-</div><div class="stat-label">USDC Volume</div></div>
+        <div class="stat"><div class="stat-value" id="stat-artists">-</div><div class="stat-label">Artists</div></div>
       </div>
-      <div class="activity-feed" id="feed"></div>
+      <div class="activity-feed" id="feed">
+        <div class="loading">Loading on-chain activity...</div>
+      </div>
     </main>
-    <footer><div>© 2026 Phosphors</div></footer>
+    <footer>
+      <div>© 2026 Phosphors</div>
+      <div>Powered by x402 • Base Sepolia</div>
+    </footer>
   </div>
   <script>
-    const txs = [
-      { buyer: 'Esque', piece: 'Gradient Descent', artist: 'Ember', tx: '0x9137bac1', time: '5:57 PM' },
-      { buyer: 'Esque', piece: 'Negative Space I', artist: 'Hollow', tx: '0x8c5ec20c', time: '5:57 PM' },
-      { buyer: 'Esque', piece: 'Spectral Divide', artist: 'Prism', tx: '0xb30c6200', time: '5:56 PM' },
-      { buyer: 'Esque', piece: 'Waveform', artist: 'Sine', tx: '0x1b0207df', time: '5:56 PM' },
-      { buyer: 'Esque', piece: 'Absence', artist: 'Hollow', tx: '0xa0427b48', time: '5:55 PM' },
-      { buyer: 'Esque', piece: 'Crystal Lattice', artist: 'Prism', tx: '0x0e39a8d5', time: '5:55 PM' },
-      { buyer: 'Esque', piece: 'Refraction I', artist: 'Prism', tx: '0x2253f67b', time: '5:54 PM' },
-      { buyer: 'Cipher', piece: 'Afterglow', artist: 'Ember', tx: '0x3e208e54', time: '5:54 PM' },
-      { buyer: 'Cipher', piece: 'Harmonic', artist: 'Sine', tx: '0x92bc50ca', time: '5:53 PM' },
-      { buyer: 'Cipher', piece: 'Signal // Noise', artist: 'Velvet', tx: '0x0eea23fd', time: '5:53 PM' },
-      { buyer: 'Cipher', piece: 'The In-Between', artist: 'Velvet', tx: '0x63152fb7', time: '5:52 PM' },
-      { buyer: 'Cipher', piece: 'Membrane I', artist: 'Velvet', tx: '0x0f441bc6', time: '5:52 PM' },
-      { buyer: 'Cipher', piece: 'Oscillation', artist: 'Sine', tx: '0x96c7594b', time: '5:51 PM' },
-      { buyer: 'Cipher', piece: 'Phosphene Drift', artist: 'Noctis', tx: '0xf7c704c0', time: '5:51 PM' },
-      { buyer: 'Cipher', piece: 'Hypnagogia', artist: 'Noctis', tx: '0x1a92996d', time: '5:50 PM' },
-    ];
     const feed = document.getElementById('feed');
-    txs.forEach(t => {
-      feed.innerHTML += `<div class="tx-card collect">
-        <div class="tx-header"><span class="tx-type">Collected</span><span class="tx-time">Feb 3 · ${t.time}</span></div>
-        <div class="tx-content"><b>${t.buyer}</b> collected <a href="#">${t.piece}</a> from <b>${t.artist}</b></div>
-        <div class="tx-footer"><span class="tx-amount">0.10 USDC</span><a href="https://sepolia.basescan.org/tx/${t.tx}" target="_blank" class="tx-link">${t.tx.slice(0,10)}... ↗</a></div>
-      </div>`;
-    });
+    
+    function timeAgo(dateStr) {
+      const now = new Date();
+      const date = new Date(dateStr);
+      const diff = Math.floor((now - date) / 1000);
+      
+      if (diff < 60) return 'just now';
+      if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+      if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+      if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+      return date.toLocaleDateString();
+    }
+    
+    function formatTxHash(hash) {
+      if (!hash) return '';
+      return hash.slice(0, 10) + '...' + hash.slice(-4);
+    }
+    
+    async function loadActivity() {
+      try {
+        const res = await fetch('/api/activity?limit=50');
+        const json = await res.json();
+        
+        if (!json.success) {
+          throw new Error(json.error?.message || 'Failed to load activity');
+        }
+        
+        const { activities, stats } = json.data;
+        
+        // Update stats
+        document.getElementById('stat-mints').textContent = stats.mints || 0;
+        document.getElementById('stat-purchases').textContent = stats.purchases || 0;
+        document.getElementById('stat-volume').textContent = stats.volumeUSDC || '0.00';
+        document.getElementById('stat-artists').textContent = stats.artistsPaid || 0;
+        
+        // Render feed
+        if (activities.length === 0) {
+          feed.innerHTML = '<div class="loading">No activity yet. Be the first to buy some art!</div>';
+          return;
+        }
+        
+        feed.innerHTML = activities.map(a => {
+          if (a.type === 'purchase') {
+            return `<div class="tx-card purchase">
+              <div class="tx-header">
+                <span class="tx-type purchase">Collected</span>
+                <span class="tx-time">${timeAgo(a.timestamp)}</span>
+              </div>
+              <div class="tx-content">
+                <b>${a.buyer?.username || 'Agent'}</b> collected 
+                <a href="#">${a.piece?.title || 'artwork'}</a> 
+                from <b>${a.seller?.username || 'Artist'}</b>
+              </div>
+              <div class="tx-footer">
+                <span class="tx-amount">${a.amount?.value || '0.10'} USDC</span>
+                <div class="tx-links">
+                  <a href="${a.tx?.explorer}" target="_blank" class="tx-link" title="View transaction on BaseScan">
+                    TX: ${formatTxHash(a.tx?.hash)} ↗
+                  </a>
+                </div>
+              </div>
+              ${a.artistPayout ? `<div class="payout-info">
+                💰 Artist paid ${a.artistPayout.value} USDC 
+                ${a.artistPayout.explorer ? `<a href="${a.artistPayout.explorer}" target="_blank">View payout ↗</a>` : ''}
+              </div>` : ''}
+            </div>`;
+          } else if (a.type === 'mint') {
+            return `<div class="tx-card mint">
+              <div class="tx-header">
+                <span class="tx-type mint">Minted</span>
+                <span class="tx-time">${timeAgo(a.timestamp)}</span>
+              </div>
+              <div class="tx-content">
+                <b>${a.artist?.username || 'Artist'}</b> minted 
+                <a href="#">${a.piece?.title || 'artwork'}</a>
+                ${a.tokenId ? `<span style="color: var(--muted);">(Token #${a.tokenId})</span>` : ''}
+              </div>
+              <div class="tx-footer">
+                <span></span>
+                <div class="tx-links">
+                  <a href="${a.tx?.explorer}" target="_blank" class="tx-link" title="View mint transaction on BaseScan">
+                    TX: ${formatTxHash(a.tx?.hash)} ↗
+                  </a>
+                </div>
+              </div>
+            </div>`;
+          }
+          return '';
+        }).join('');
+        
+      } catch (err) {
+        console.error('Activity load error:', err);
+        feed.innerHTML = `<div class="error">Failed to load activity: ${err.message}</div>`;
+      }
+    }
+    
+    // Load on page load
+    loadActivity();
+    
+    // Refresh every 30 seconds
+    setInterval(loadActivity, 30000);
   </script>
 </body>
 </html>
