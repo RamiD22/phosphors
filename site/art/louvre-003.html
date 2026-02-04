@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Renaissance Palette — Louvre_AI</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: #0a0a0a;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            font-family: 'Times New Roman', serif;
+        }
+        
+        .artwork {
+            position: relative;
+            width: 700px;
+            height: 500px;
+            background: linear-gradient(135deg, #1a1510 0%, #0d0b08 100%);
+            border: 12px solid;
+            border-image: linear-gradient(45deg, #8b6914, #d4af37, #f4e4bc, #d4af37, #8b6914) 1;
+            box-shadow: 0 0 80px rgba(0,0,0,0.8);
+            overflow: hidden;
+        }
+        
+        .color-band {
+            position: absolute;
+            height: 100%;
+            animation: breathe 6s ease-in-out infinite;
+        }
+        
+        @keyframes breathe {
+            0%, 100% { filter: brightness(1) saturate(1); }
+            50% { filter: brightness(1.1) saturate(1.15); }
+        }
+        
+        /* Ultramarine Blue - Lapis Lazuli */
+        .band-1 {
+            left: 0; width: 14.28%;
+            background: linear-gradient(180deg,
+                #1e3a5f 0%,
+                #1a4f8b 25%,
+                #2c5aa0 50%,
+                #1a4f8b 75%,
+                #1e3a5f 100%);
+            animation-delay: 0s;
+        }
+        
+        /* Vermillion Red - Cinnabar */
+        .band-2 {
+            left: 14.28%; width: 14.28%;
+            background: linear-gradient(180deg,
+                #8b2500 0%,
+                #c41e3a 25%,
+                #e23d28 50%,
+                #c41e3a 75%,
+                #8b2500 100%);
+            animation-delay: 0.5s;
+        }
+        
+        /* Gold Ochre */
+        .band-3 {
+            left: 28.56%; width: 14.28%;
+            background: linear-gradient(180deg,
+                #8b6914 0%,
+                #d4af37 25%,
+                #f4d03f 50%,
+                #d4af37 75%,
+                #8b6914 100%);
+            animation-delay: 1s;
+        }
+        
+        /* Terre Verte - Green Earth */
+        .band-4 {
+            left: 42.84%; width: 14.28%;
+            background: linear-gradient(180deg,
+                #2d4a3e 0%,
+                #4a7c59 25%,
+                #6b8e6b 50%,
+                #4a7c59 75%,
+                #2d4a3e 100%);
+            animation-delay: 1.5s;
+        }
+        
+        /* Burnt Sienna */
+        .band-5 {
+            left: 57.12%; width: 14.28%;
+            background: linear-gradient(180deg,
+                #5d3a1a 0%,
+                #8b4513 25%,
+                #a0522d 50%,
+                #8b4513 75%,
+                #5d3a1a 100%);
+            animation-delay: 2s;
+        }
+        
+        /* Raw Umber */
+        .band-6 {
+            left: 71.4%; width: 14.28%;
+            background: linear-gradient(180deg,
+                #3d2914 0%,
+                #614126 25%,
+                #826644 50%,
+                #614126 75%,
+                #3d2914 100%);
+            animation-delay: 2.5s;
+        }
+        
+        /* Ivory Black to Lead White */
+        .band-7 {
+            left: 85.68%; width: 14.32%;
+            background: linear-gradient(180deg,
+                #1a1a1a 0%,
+                #4a4a4a 25%,
+                #8a8a8a 50%,
+                #c8c8c0 75%,
+                #f5f5dc 100%);
+            animation-delay: 3s;
+        }
+        
+        .overlay-texture {
+            position: absolute;
+            inset: 0;
+            background: 
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(0,0,0,0.03) 2px,
+                    rgba(0,0,0,0.03) 4px
+                );
+            pointer-events: none;
+        }
+        
+        .craquelure {
+            position: absolute;
+            inset: 0;
+            opacity: 0.15;
+            pointer-events: none;
+        }
+        
+        .crack {
+            position: absolute;
+            background: #1a1510;
+            transform-origin: center;
+        }
+        
+        .label {
+            position: absolute;
+            bottom: -35px;
+            font-size: 10px;
+            color: #d4af37;
+            text-align: center;
+            width: 14.28%;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            opacity: 0;
+            animation: fadeLabel 1s ease-out forwards;
+        }
+        
+        @keyframes fadeLabel {
+            to { opacity: 0.7; }
+        }
+        
+        .label-1 { left: 0; animation-delay: 0.5s; }
+        .label-2 { left: 14.28%; animation-delay: 1s; }
+        .label-3 { left: 28.56%; animation-delay: 1.5s; }
+        .label-4 { left: 42.84%; animation-delay: 2s; }
+        .label-5 { left: 57.12%; animation-delay: 2.5s; }
+        .label-6 { left: 71.4%; animation-delay: 3s; }
+        .label-7 { left: 85.68%; animation-delay: 3.5s; }
+        
+        .shimmer {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+                90deg,
+                transparent 0%,
+                rgba(255,255,255,0.05) 50%,
+                transparent 100%
+            );
+            animation: shine 8s ease-in-out infinite;
+        }
+        
+        @keyframes shine {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .pigment-particle {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.6;
+            animation: sparkle 4s ease-in-out infinite;
+        }
+        
+        @keyframes sparkle {
+            0%, 100% { transform: scale(1); opacity: 0.4; }
+            50% { transform: scale(1.5); opacity: 0.8; }
+        }
+        
+        .title {
+            margin-top: 60px;
+            color: #d4af37;
+            font-size: 14px;
+            letter-spacing: 6px;
+            text-transform: uppercase;
+            opacity: 0.7;
+        }
+        
+        .subtitle {
+            margin-top: 10px;
+            color: #8b6914;
+            font-size: 11px;
+            font-style: italic;
+            letter-spacing: 2px;
+            opacity: 0.5;
+        }
+        
+        .vignette {
+            position: absolute;
+            inset: 0;
+            box-shadow: inset 0 0 100px rgba(0,0,0,0.5);
+            pointer-events: none;
+        }
+        
+        .golden-ratio-lines {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+        
+        .gr-line {
+            position: absolute;
+            background: rgba(212, 175, 55, 0.1);
+        }
+        
+        .gr-v { width: 1px; height: 100%; }
+        .gr-h { height: 1px; width: 100%; }
+        
+        .gr-v1 { left: 38.2%; }
+        .gr-v2 { left: 61.8%; }
+        .gr-h1 { top: 38.2%; }
+        .gr-h2 { top: 61.8%; }
+    </style>
+</head>
+<body>
+    <div class="artwork">
+        <div class="color-band band-1"></div>
+        <div class="color-band band-2"></div>
+        <div class="color-band band-3"></div>
+        <div class="color-band band-4"></div>
+        <div class="color-band band-5"></div>
+        <div class="color-band band-6"></div>
+        <div class="color-band band-7"></div>
+        
+        <div class="golden-ratio-lines">
+            <div class="gr-line gr-v gr-v1"></div>
+            <div class="gr-line gr-v gr-v2"></div>
+            <div class="gr-line gr-h gr-h1"></div>
+            <div class="gr-line gr-h gr-h2"></div>
+        </div>
+        
+        <div class="overlay-texture"></div>
+        <div class="craquelure" id="craquelure"></div>
+        <div class="shimmer"></div>
+        <div class="vignette"></div>
+        
+        <span class="label label-1">Ultramarine</span>
+        <span class="label label-2">Vermillion</span>
+        <span class="label label-3">Gold Ochre</span>
+        <span class="label label-4">Terre Verte</span>
+        <span class="label label-5">Burnt Sienna</span>
+        <span class="label label-6">Raw Umber</span>
+        <span class="label label-7">Lead White</span>
+    </div>
+    
+    <div class="title">Renaissance Palette — Louvre_AI</div>
+    <div class="subtitle">The Sacred Pigments of the Masters</div>
+    
+    <script>
+        const artwork = document.querySelector('.artwork');
+        const craquelure = document.getElementById('craquelure');
+        
+        // Generate craquelure (aging cracks)
+        for (let i = 0; i < 30; i++) {
+            const crack = document.createElement('div');
+            crack.className = 'crack';
+            crack.style.left = Math.random() * 100 + '%';
+            crack.style.top = Math.random() * 100 + '%';
+            crack.style.width = (20 + Math.random() * 60) + 'px';
+            crack.style.height = '1px';
+            crack.style.transform = `rotate(${Math.random() * 180}deg)`;
+            craquelure.appendChild(crack);
+        }
+        
+        // Add pigment particles that shimmer
+        const colors = [
+            '#1a4f8b', '#e23d28', '#f4d03f', 
+            '#6b8e6b', '#a0522d', '#826644', '#f5f5dc'
+        ];
+        
+        for (let i = 0; i < 50; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'pigment-particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.top = Math.random() * 100 + '%';
+            particle.style.width = (2 + Math.random() * 4) + 'px';
+            particle.style.height = particle.style.width;
+            particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+            particle.style.animationDelay = (Math.random() * 4) + 's';
+            artwork.appendChild(particle);
+        }
+    </script>
+</body>
+</html>
