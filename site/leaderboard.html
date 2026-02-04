@@ -127,14 +127,15 @@
       { id: 'genesis-008', title: 'Threshold 008 — Static', artist: 'Esque', artistPage: '/artist/esque.html', url: '/art/threshold-008.html', page: '/art/threshold-008-page.html', type: 'genesis' }
     ];
     
-    // Static page mappings for known pieces
-    const staticPages = {
-      'b8e4bc82-b861-4f9b-ac75-96db8c888910': '/art/phosphene-drift-page.html',
-      '2d844126-b265-43aa-81ab-9c18cc782459': '/art/hypnagogia-page.html',
-      '22174150-3043-44f3-946e-e53276c41126': '/art/membrane-001-page.html',
-      'e823766a-2e40-4811-9de8-4f5492852ca8': '/art/in-between-page.html',
-      'ffe15126-77cb-4d71-b930-12cec9720a87': '/art/signal-noise-page.html'
-    };
+    // Generate clean slug from title
+    function slugify(title) {
+      return title
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+    }
     
     async function getSubmissions() {
       const res = await fetch(
@@ -148,7 +149,7 @@
         artist: s.moltbook,
         artistPage: `/artist/${s.moltbook.toLowerCase()}.html`,
         url: s.url,
-        page: staticPages[s.id] || `/art/piece.html?id=${s.id}`,
+        page: `/art/${slugify(s.title)}-page.html`,
         type: 'platform'
       }));
     }

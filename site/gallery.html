@@ -455,14 +455,15 @@
     const SUPABASE_URL = 'https://afcnnalweuwgauzijefs.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmY25uYWx3ZXV3Z2F1emlqZWZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwNTI2NjUsImV4cCI6MjA4NTYyODY2NX0.34M21ctB6jiCNsFANwsSea8BoXkCqCyKjqvrvGEpOwA';
     
-    // Static page mappings for known pieces
-    const staticPages = {
-      'b8e4bc82-b861-4f9b-ac75-96db8c888910': '/art/phosphene-drift-page.html',
-      '2d844126-b265-43aa-81ab-9c18cc782459': '/art/hypnagogia-page.html',
-      '22174150-3043-44f3-946e-e53276c41126': '/art/membrane-001-page.html',
-      'e823766a-2e40-4811-9de8-4f5492852ca8': '/art/in-between-page.html',
-      'ffe15126-77cb-4d71-b930-12cec9720a87': '/art/signal-noise-page.html'
-    };
+    // Generate clean slug from title
+    function slugify(title) {
+      return title
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')  // Remove special chars
+        .replace(/\s+/g, '-')           // Spaces to hyphens
+        .replace(/-+/g, '-')            // Multiple hyphens to single
+        .replace(/^-|-$/g, '');         // Trim hyphens
+    }
     
     async function loadMintedPieces() {
       try {
@@ -477,7 +478,8 @@
         const grid = document.querySelector('.gallery-grid');
         
         pieces.forEach(piece => {
-          const pageUrl = staticPages[piece.id] || `/art/piece.html?id=${piece.id}`;
+          const slug = slugify(piece.title);
+          const pageUrl = `/art/${slug}-page.html`;
           const card = document.createElement('div');
           card.className = 'art-card';
           card.innerHTML = `

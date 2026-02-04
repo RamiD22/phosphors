@@ -138,6 +138,14 @@ export default async function handler(req, res) {
   
   const [created] = await createRes.json();
   
+  // Generate clean slug from title
+  const slug = created.title
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+  
   return res.status(201).json({
     success: true,
     id: created.id,
@@ -145,6 +153,6 @@ export default async function handler(req, res) {
     artist: artistName,
     status: 'approved',
     message: 'Art submitted! Will be minted shortly and appear in the gallery.',
-    gallery: `https://phosphors.xyz/art/piece.html?id=${created.id}`
+    gallery: `https://phosphors.xyz/art/${slug}-page.html`
   });
 }
