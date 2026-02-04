@@ -86,10 +86,17 @@ export default async function handler(req, res) {
 
   // POST - Initiate or complete bridge
   if (req.method === 'POST') {
-    const { action, sourceChain, destinationChain, amount, destinationAddress, messageSent, attestation } = req.body;
+    let body;
+    try {
+      body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
+    } catch (e) {
+      return res.status(400).json({ error: 'Invalid JSON body' });
+    }
+    
+    const { action, sourceChain, destinationChain, amount, destinationAddress, messageSent, attestation } = body;
 
     // Validate chains
-    if (!DOMAIN_IDS.hasOwnProperty(sourceChain) || !DOMAIN_IDS.hasOwnProperty(destinationChain)) {
+    if (!(sourceChain in DOMAIN_IDS) || !(destinationChain in DOMAIN_IDS)) {
       return res.status(400).json({
         error: 'Invalid chain',
         supportedChains: Object.keys(DOMAIN_IDS),
@@ -127,6 +134,10 @@ export default async function handler(req, res) {
 
     if (sourceChain === 'solana-devnet') {
       // Solana -> EVM bridge
+      const mintRecipient = destinationAddress 
+        ? `0x000000000000000000000000${destinationAddress.slice(2)}` 
+        : '<provide destinationAddress>';
+      
       return res.status(200).json({
         step: 'burn',
         chain: sourceChain,
@@ -135,8 +146,8 @@ export default async function handler(req, res) {
           usdcMint: sourceContracts.usdcMint,
           amount: amountInDecimals,
           destinationDomain: destDomain,
-          destinationAddress: destinationAddress,
-          mintRecipient: `0x000000000000000000000000${destinationAddress.slice(2)}`, // Pad to 32 bytes
+          destinationAddress: destinationAddress || '<required>',
+          mintRecipient: mintRecipient,
         },
         nextStep: {
           description: 'After burn tx confirms, poll attestation API',
@@ -166,8 +177,8 @@ export default async function handler(req, res) {
             amount: amountInDecimals,
             destinationDomain: destDomain,
             mintRecipient: destinationChain === 'solana-devnet' 
-              ? destinationAddress // Solana address as base58
-              : `0x000000000000000000000000${destinationAddress.slice(2)}`, // Pad EVM address to 32 bytes
+              ? (destinationAddress || '<provide solana address>') // Solana address as base58
+              : (destinationAddress ? `0x000000000000000000000000${destinationAddress.slice(2)}` : '<provide destinationAddress>'), // Pad EVM address to 32 bytes
             burnToken: sourceContracts.usdc,
           },
         },

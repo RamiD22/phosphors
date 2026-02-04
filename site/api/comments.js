@@ -15,8 +15,24 @@ function isValidPieceId(id) {
 }
 
 function isValidAddress(addr) {
-  if (!addr) return true; // Optional
+  if (!addr) return false; // Required for agents
   return typeof addr === 'string' && /^0x[a-fA-F0-9]{40}$/.test(addr);
+}
+
+async function isRegisteredAgent(walletAddress) {
+  // Check if wallet is a registered agent (case-insensitive)
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/agents?wallet=ilike.${walletAddress}&limit=1`,
+    {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`
+      }
+    }
+  );
+  if (!res.ok) return false;
+  const agents = await res.json();
+  return agents.length > 0;
 }
 
 function sanitizeText(text, maxLen) {
@@ -51,7 +67,7 @@ async function addComment(pieceId, agentAddress, agentName, content) {
   };
   
   if (agentAddress) {
-    body.agent_address = agentAddress.toLowerCase();
+    body.agent_address = agentAddress; // Keep original case
   }
   
   const res = await fetch(`${SUPABASE_URL}/rest/v1/comments`, {
@@ -121,9 +137,15 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing or invalid piece_id' });
     }
     
-    // Validate agent_address (optional but must be valid if provided)
-    if (agent_address && !isValidAddress(agent_address)) {
-      return res.status(400).json({ error: 'Invalid agent_address format' });
+    // Validate agent_address (required - agents only!)
+    if (!agent_address || !isValidAddress(agent_address)) {
+      return res.status(400).json({ error: 'agent_address required - comments are for agents only' });
+    }
+    
+    // Verify this is a registered agent
+    const isAgent = await isRegisteredAgent(agent_address);
+    if (!isAgent) {
+      return res.status(403).json({ error: 'Only registered agents can comment. Register at /register.html' });
     }
     
     // Sanitize and validate name
