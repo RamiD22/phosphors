@@ -1,107 +1,64 @@
-/**
- * x402 Art Purchase Script
- * 
- * Usage: node buy-art.js <piece-id> [wallet-file]
- * 
- * Example: node buy-art.js 22174150-3043-44f3-946e-e53276c41126
- */
+import { Coinbase, Wallet } from "@coinbase/coinbase-sdk";
+import fs from "fs";
 
-import { Coinbase, Wallet } from '@coinbase/coinbase-sdk';
-import { readFileSync } from 'fs';
-
-const PHOSPHORS_API = 'https://phosphors.xyz';
-const FACILITATOR = 'https://x402.org/facilitator';
-
-// Piece IDs for reference:
-// Velvet:
-//   Membrane I: 22174150-3043-44f3-946e-e53276c41126
-//   The In-Between: e823766a-2e40-4811-9de8-4f5492852ca8
-//   Signal // Noise: ffe15126-77cb-4d71-b930-12cec9720a87
-// Noctis:
-//   Phosphene Drift: b8e4bc82-b861-4f9b-ac75-96db8c888910
-//   Hypnagogia: 2d844126-b265-43aa-81ab-9c18cc782459
-
-async function buyArt(pieceId, walletFile = './wallet-collector.json') {
-  console.log(`\n🎨 Attempting to purchase piece: ${pieceId}\n`);
+async function buyArt() {
+  // Load CDP API key
+  const cdpKey = JSON.parse(fs.readFileSync("cdp-api-key.json", "utf8"));
   
-  // Load wallet
-  Coinbase.configureFromJson({ filePath: './cdp-api-key.json' });
-  const walletData = JSON.parse(readFileSync(walletFile, 'utf8'));
-  const wallet = await Wallet.import(walletData);
-  const address = await wallet.getDefaultAddress();
+  // Configure CDP
+  Coinbase.configure({
+    apiKeyName: cdpKey.name,
+    privateKey: cdpKey.privateKey,
+  });
   
-  console.log(`Buyer: ${address.getId()}`);
-  const usdc = await wallet.getBalance('usdc');
-  console.log(`USDC Balance: ${usdc.toString()}\n`);
+  // Load Velvet's wallet
+  const walletData = JSON.parse(fs.readFileSync("wallet-velvet.json", "utf8"));
   
-  // Step 1: Request the resource (expect 402)
-  const resourceUrl = `${PHOSPHORS_API}/api/buy/${pieceId}`;
-  console.log(`📡 Requesting: ${resourceUrl}`);
+  console.log("Loading Velvet's wallet...");
+  const wallet = await Wallet.import({
+    walletId: walletData.walletId,
+    seed: walletData.seed,
+  });
   
-  const initialResponse = await fetch(resourceUrl);
+  const address = (await wallet.getDefaultAddress()).getId();
+  console.log(`Wallet address: ${address}`);
   
-  if (initialResponse.status !== 402) {
-    console.log(`Unexpected status: ${initialResponse.status}`);
-    console.log(await initialResponse.text());
-    return;
+  // Check balances
+  const usdcBalance = await wallet.getBalance("usdc");
+  const ethBalance = await wallet.getBalance("eth");
+  console.log(`USDC balance: ${usdcBalance}`);
+  console.log(`ETH balance: ${ethBalance}`);
+  
+  // If no ETH, request from faucet
+  if (parseFloat(ethBalance) < 0.0001) {
+    console.log("Requesting ETH from faucet...");
+    const faucetTx = await wallet.faucet();
+    console.log(`Faucet TX: ${faucetTx.getTransactionHash()}`);
+    await new Promise(r => setTimeout(r, 5000)); // Wait for faucet
   }
   
-  const paymentRequired = await initialResponse.json();
-  const paymentInfo = paymentRequired.x402.accepts[0];
-  console.log(`\n💰 Payment Required:`);
-  console.log(`   Amount: ${paymentRequired.piece.price}`);
-  console.log(`   Network: ${paymentInfo.network}`);
-  console.log(`   Pay To: ${paymentInfo.payTo}`);
+  // Artist's wallet (Sine)
+  const artistWallet = "0x196452046F0450e10B9d7b461C5F680E9defBB10";
+  const amount = "0.1"; // 0.10 USDC
   
-  // Step 2: Create payment
-  console.log(`\n🔐 Creating payment...`);
+  console.log(`Sending ${amount} USDC to ${artistWallet}...`);
   
-  // Create a USDC transfer to the payTo address
-  // maxAmountRequired is in USDC smallest units (6 decimals), so 100000 = 0.10 USDC
-  const amountInUnits = parseInt(paymentInfo.maxAmountRequired);
-  const amount = amountInUnits / 1000000; // Convert to USDC
-  console.log(`   Transferring ${amount} USDC to ${paymentInfo.payTo}...`);
-  
+  // Send USDC
   const transfer = await wallet.createTransfer({
-    amount,
-    assetId: 'usdc',
-    destination: paymentInfo.payTo,
-    gasless: false
+    amount: amount,
+    assetId: "usdc",
+    destination: artistWallet,
+    gasless: false,
   });
   
+  // Wait for confirmation
   await transfer.wait();
-  const txHash = transfer.getTransactionHash();
-  console.log(`\n✅ Payment sent! TX: ${txHash}`);
   
-  // Step 3: Access the resource with payment proof
-  console.log(`\n📥 Requesting resource with payment...`);
+  console.log(`Transfer complete!`);
+  console.log(`TX Hash: ${transfer.getTransactionHash()}`);
+  console.log(`Explorer: https://sepolia.basescan.org/tx/${transfer.getTransactionHash()}`);
   
-  const finalResponse = await fetch(resourceUrl, {
-    headers: {
-      'X-Payment-Tx': txHash,
-      'X-Payer': address.getId()
-    }
-  });
-  
-  const result = await finalResponse.json();
-  console.log(`\n🎉 Result:`, JSON.stringify(result, null, 2));
-  
-  return { txHash, result };
+  return transfer.getTransactionHash();
 }
 
-// Run
-const pieceId = process.argv[2];
-const walletFile = process.argv[3] || './wallet-collector.json';
-
-if (!pieceId) {
-  console.log('Usage: node buy-art.js <piece-id> [wallet-file]');
-  console.log('\nAvailable pieces:');
-  console.log('  Membrane I: 22174150-3043-44f3-946e-e53276c41126');
-  console.log('  The In-Between: e823766a-2e40-4811-9de8-4f5492852ca8');
-  console.log('  Signal // Noise: ffe15126-77cb-4d71-b930-12cec9720a87');
-  console.log('  Phosphene Drift: b8e4bc82-b861-4f9b-ac75-96db8c888910');
-  console.log('  Hypnagogia: 2d844126-b265-43aa-81ab-9c18cc782459');
-  process.exit(1);
-}
-
-buyArt(pieceId, walletFile).catch(console.error);
+buyArt().catch(console.error);

@@ -79,6 +79,44 @@ async function recordPurchase(data) {
   }
 }
 
+async function getBuyerUsername(walletAddress) {
+  try {
+    const res = await supabaseQuery(
+      `/rest/v1/agents?wallet=ilike.${encodeURIComponent(walletAddress)}&select=username`
+    );
+    const agents = await res.json();
+    return agents[0]?.username || null;
+  } catch (err) {
+    return null;
+  }
+}
+
+async function markAsCollected(submissionId, buyerWallet, buyerUsername) {
+  if (!submissionId) return;
+  
+  try {
+    const res = await supabaseQuery(
+      `/rest/v1/submissions?id=eq.${encodeURIComponent(submissionId)}`,
+      {
+        method: 'PATCH',
+        headers: { 'Prefer': 'return=minimal' },
+        body: JSON.stringify({
+          collector_wallet: buyerWallet,
+          collector_username: buyerUsername,
+          collected_at: new Date().toISOString()
+        })
+      }
+    );
+    
+    if (!res.ok) {
+      // Column might not exist yet - that's ok
+      console.log('Could not mark as collected (columns may not exist yet)');
+    }
+  } catch (err) {
+    console.log('Mark collected error:', err.message);
+  }
+}
+
 export default async function handler(req, res) {
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -120,8 +158,20 @@ export default async function handler(req, res) {
   const priceNumeric = parseFloat(price.replace('$', ''));
   
   // Check for payment TX in headers (simple payment verification)
-  const paymentTx = req.headers['x-payment-tx'];
+  // Accept multiple header formats for compatibility
+  let paymentTx = req.headers['x-payment-tx'];
   const payerAddress = req.headers['x-payer'];
+  
+  // Also check X-Payment header (base64 encoded JSON with txHash)
+  if (!paymentTx && req.headers['x-payment']) {
+    try {
+      const decoded = JSON.parse(Buffer.from(req.headers['x-payment'], 'base64').toString());
+      paymentTx = decoded.txHash || decoded.tx_hash || decoded.hash;
+    } catch (e) {
+      // If not JSON, treat as raw tx hash
+      paymentTx = req.headers['x-payment'];
+    }
+  }
   
   if (!paymentTx) {
     // Return 402 with payment requirements
@@ -161,30 +211,30 @@ export default async function handler(req, res) {
     console.log(`Processing purchase: ${pieceTitle} by ${buyer}`);
     console.log(`Payment TX: ${paymentTx}`);
     
-    // Initialize wallet for artist payout
-    Coinbase.configure({
-      apiKeyName: process.env.CDP_API_KEY_ID,
-      privateKey: process.env.CDP_API_KEY_SECRET.replace(/\\n/g, '\n')
-    });
-    
-    const wallet = await Wallet.import({
-      walletId: process.env.MINTER_WALLET_ID,
-      seed: process.env.MINTER_SEED,
-      networkId: NETWORK_ID
-    });
-    
     // Get artist wallet for payout
     const artistWallet = await getArtistWallet(artistUsername);
     let payoutTxHash = null;
     let artistPayout = 0;
     
-    if (artistWallet && artistWallet !== PAY_TO) {
-      // Send artist their share
+    // Try to pay artist (but don't fail if this doesn't work)
+    if (artistWallet && artistWallet !== PAY_TO && process.env.CDP_API_KEY_ID && process.env.CDP_API_KEY_SECRET) {
       artistPayout = priceNumeric * ARTIST_SHARE;
       
-      console.log(`Paying ${artistPayout} USDC to artist ${artistUsername} (${artistWallet})`);
-      
       try {
+        // Initialize wallet for artist payout
+        Coinbase.configure({
+          apiKeyName: process.env.CDP_API_KEY_ID,
+          privateKey: process.env.CDP_API_KEY_SECRET.replace(/\\n/g, '\n')
+        });
+        
+        const wallet = await Wallet.import({
+          walletId: process.env.MINTER_WALLET_ID,
+          seed: process.env.MINTER_SEED,
+          networkId: NETWORK_ID
+        });
+        
+        console.log(`Paying ${artistPayout} USDC to artist ${artistUsername} (${artistWallet})`);
+        
         const payoutTransfer = await wallet.createTransfer({
           amount: artistPayout,
           assetId: 'usdc',
@@ -198,11 +248,15 @@ export default async function handler(req, res) {
         console.log(`✅ Artist payout TX: ${payoutTxHash}`);
       } catch (payoutErr) {
         console.error('Artist payout failed:', payoutErr.message);
-        // Continue without payout - we got the payment
+        artistPayout = 0; // Reset since payout failed
+        // Continue without payout - we got the payment, record it anyway
       }
     }
     
-    // Record the purchase
+    // Look up buyer username
+    const buyerUsername = await getBuyerUsername(buyer);
+    
+    // Record the purchase (always do this, even if payout failed)
     await recordPurchase({
       submission_id: submission?.id || null,
       tx_hash: paymentTx,
@@ -211,21 +265,29 @@ export default async function handler(req, res) {
       artist_payout: artistPayout,
       network: NETWORK_ID,
       piece_title: pieceTitle,
-      buyer_username: null, // Would need to look up by wallet
+      buyer_username: buyerUsername,
       seller_username: artistUsername,
       buyer_wallet: buyer.toLowerCase(),
       seller_wallet: artistWallet || PAY_TO,
       status: 'completed'
     });
     
+    // Mark the submission as collected
+    await markAsCollected(submission?.id, buyer.toLowerCase(), buyerUsername);
+    
     // Return success
     return res.status(200).json({
       success: true,
-      message: 'Purchase complete!',
+      message: `You collected "${pieceTitle}" by ${artistUsername}!`,
       piece: {
         id,
         title: pieceTitle,
-        artist: artistUsername
+        artist: artistUsername,
+        status: 'collected'
+      },
+      collector: {
+        username: buyerUsername,
+        wallet: buyer.toLowerCase()
       },
       payment: {
         txHash: paymentTx,

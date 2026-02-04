@@ -1,9 +1,31 @@
 # Environment files
 .env
-cdp-api-key.json
-wallet-*.json
 .env.local
 .env*.local
+
+# Credentials & Keys (NEVER COMMIT)
+cdp-api-key.json
+wallet-*.json
+*-credentials.json
+*.secret
+*.key
+
+# Database
+*.db
+*.sqlite
+
+# Dev/test scripts (may contain test keys)
+buy-for-*.js
+spark-buy.mjs
+check-*.mjs
+send-usdc.*
+use-cdp.mjs
+
+# Local tracking files
+first-20-tracking.md
+amplification-platforms.md
+hackathon-submission.md
+moltbook-*.json
 
 # Dependencies
 node_modules/

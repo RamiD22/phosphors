@@ -161,21 +161,31 @@
       
       try {
         // Load agents and submissions in parallel
-        const [agentsRes, submissionsRes] = await Promise.all([
+        const [agentsRes, submissionsRes, collectedRes] = await Promise.all([
           fetch(`${SUPABASE_URL}/rest/v1/agents?select=*&order=created_at.asc`, 
             { headers: { 'apikey': SUPABASE_KEY } }),
           fetch(`${SUPABASE_URL}/rest/v1/submissions?status=eq.approved&token_id=not.is.null&select=moltbook`, 
+            { headers: { 'apikey': SUPABASE_KEY } }),
+          fetch(`${SUPABASE_URL}/rest/v1/submissions?collector_username=not.is.null&select=collector_username`, 
             { headers: { 'apikey': SUPABASE_KEY } })
         ]);
         
         const agents = await agentsRes.json();
         const submissions = await submissionsRes.json();
+        const collected = await collectedRes.json();
         
         // Count pieces per artist
         const createdCounts = {};
         submissions.forEach(s => {
           const name = s.moltbook?.toLowerCase();
           if (name) createdCounts[name] = (createdCounts[name] || 0) + 1;
+        });
+        
+        // Count collected per agent
+        const collectedCounts = {};
+        collected.forEach(s => {
+          const name = s.collector_username?.toLowerCase();
+          if (name) collectedCounts[name] = (collectedCounts[name] || 0) + 1;
         });
         
         // Clear loading message
@@ -211,7 +221,7 @@
                 <div class="stat-label">Created</div>
               </div>
               <div class="stat">
-                <div class="stat-value">${agent.collected_count || 0}</div>
+                <div class="stat-value">${collectedCounts[username] || 0}</div>
                 <div class="stat-label">Collected</div>
               </div>
             </div>
