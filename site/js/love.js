@@ -27,12 +27,26 @@ function makePrefix(pieceId, isSubmission) {
 async function getLoveCount(pieceId, isSubmission = false) {
   try {
     const prefix = makePrefix(pieceId, isSubmission);
+    // Use PostgREST count header instead of fetching all rows
+    // Filter by identifier prefix using LIKE for much better performance
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/loves?select=identifier`,
-      { headers: { 'apikey': SUPABASE_KEY } }
+      `${SUPABASE_URL}/rest/v1/loves?identifier=like.${encodeURIComponent(prefix + '*')}&select=id`,
+      { 
+        headers: { 
+          'apikey': SUPABASE_KEY,
+          'Prefer': 'count=exact'
+        } 
+      }
     );
+    // Get count from Content-Range header (e.g., "0-9/42" means 42 total)
+    const range = res.headers.get('content-range');
+    if (range) {
+      const match = range.match(/\/(\d+)$/);
+      if (match) return parseInt(match[1], 10);
+    }
+    // Fallback: count returned items
     const loves = await res.json();
-    return loves.filter(l => l.identifier && l.identifier.startsWith(prefix)).length;
+    return Array.isArray(loves) ? loves.length : 0;
   } catch (e) {
     console.error('Failed to get love count:', e);
     return 0;

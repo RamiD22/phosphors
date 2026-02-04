@@ -13,12 +13,8 @@
  * }
  */
 
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY
-);
+// Note: Bridge API is stateless - no database access needed
+// CCTP instructions are returned for client-side execution
 
 // CCTP Domain IDs
 const DOMAIN_IDS = {
@@ -58,8 +54,9 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // GET - Return bridge info
+  // GET - Return bridge info (static, cacheable)
   if (req.method === 'GET') {
+    res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
     return res.status(200).json({
       name: 'Phosphors CCTP Bridge',
       description: 'Bridge USDC across chains using Circle CCTP',

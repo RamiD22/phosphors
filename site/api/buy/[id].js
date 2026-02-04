@@ -12,7 +12,7 @@ const BLOCK_EXPLORER = IS_MAINNET ? 'https://basescan.org' : 'https://sepolia.ba
 
 // Supabase config
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://afcnnalweuwgauzijefs.supabase.co';
-const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmY25uYWx3ZXV3Z2F1emlqZWZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwNTI2NjUsImV4cCI6MjA4NTYyODY2NX0.34M21ctB6jiCNsFANwsSea8BoXkCqCyKjqvrvGEpOwA';
+const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
 
 // Fallback wallet (platform wallet for unregistered artists)
 const PLATFORM_WALLET = process.env.PLATFORM_WALLET || '0x797F74794f0F5b17d579Bd40234DAc3eb9f78fd5';

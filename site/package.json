@@ -12,6 +12,9 @@
   "type": "commonjs",
   "dependencies": {
     "@coinbase/coinbase-sdk": "^0.25.0",
+    "@solana/spl-token": "^0.4.0",
+    "@solana/web3.js": "^1.95.0",
+    "@supabase/supabase-js": "^2.45.0",
     "@vercel/analytics": "^1.6.1",
     "@x402/core": "^2.2.0",
     "@x402/evm": "^2.2.0"

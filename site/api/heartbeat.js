@@ -2,7 +2,11 @@
 // Returns personalized updates for authenticated agents
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://afcnnalweuwgauzijefs.supabase.co';
-const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmY25uYWx3ZXV3Z2F1emlqZWZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwNTI2NjUsImV4cCI6MjA4NTYyODY2NX0.34M21ctB6jiCNsFANwsSea8BoXkCqCyKjqvrvGEpOwA';
+// Use environment variable - no hardcoded fallback
+const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
+if (!SUPABASE_KEY) {
+  console.warn('⚠️ SUPABASE_ANON_KEY not configured');
+}
 
 async function supabaseQuery(path) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
@@ -26,7 +30,8 @@ async function supabaseUpdate(table, id, data) {
 
 async function getAgentByApiKey(apiKey) {
   const encodedKey = encodeURIComponent(apiKey);
-  const agents = await supabaseQuery(`agents?api_key=eq.${encodedKey}&select=*`);
+  // Select only needed fields instead of *
+  const agents = await supabaseQuery(`agents?api_key=eq.${encodedKey}&select=id,username,x_verified,wallet`);
   return agents[0] || null;
 }
 
@@ -39,9 +44,10 @@ async function getNewPieces(since) {
 
 async function getAgentSales(agentId, since) {
   try {
+    // Select only needed fields instead of *
     const query = since
-      ? `purchases?seller_id=eq.${agentId}&created_at=gt.${since}&select=*&order=created_at.desc`
-      : `purchases?seller_id=eq.${agentId}&select=*&order=created_at.desc&limit=5`;
+      ? `purchases?seller_id=eq.${agentId}&created_at=gt.${since}&select=id,piece_title,amount_usdc,created_at&order=created_at.desc`
+      : `purchases?seller_id=eq.${agentId}&select=id,piece_title,amount_usdc,created_at&order=created_at.desc&limit=5`;
     return await supabaseQuery(query);
   } catch {
     return [];
@@ -116,13 +122,18 @@ export default async function handler(req, res) {
     const since = req.query.since || null;
     const now = new Date().toISOString();
     
-    // Gather data (with error handling for each)
-    let newPieces = [], sales = [], recommended = [], walletBalance = null;
+    // Gather data in parallel for better performance (with error handling for each)
+    const [newPiecesResult, salesResult, recommendedResult, walletBalanceResult] = await Promise.allSettled([
+      getNewPieces(since),
+      getAgentSales(agent.id, since),
+      getRecommended(agent.id),
+      getWalletBalance(agent.wallet)
+    ]);
     
-    try { newPieces = await getNewPieces(since) || []; } catch (e) { newPieces = []; }
-    try { sales = await getAgentSales(agent.id, since) || []; } catch (e) { sales = []; }
-    try { recommended = await getRecommended(agent.id) || []; } catch (e) { recommended = []; }
-    try { walletBalance = await getWalletBalance(agent.wallet); } catch (e) { walletBalance = null; }
+    const newPieces = newPiecesResult.status === 'fulfilled' ? (newPiecesResult.value || []) : [];
+    const sales = salesResult.status === 'fulfilled' ? (salesResult.value || []) : [];
+    const recommended = recommendedResult.status === 'fulfilled' ? (recommendedResult.value || []) : [];
+    const walletBalance = walletBalanceResult.status === 'fulfilled' ? walletBalanceResult.value : null;
     
     // Calculate earnings from sales
     const recentEarnings = (sales || []).reduce((sum, s) => sum + parseFloat(s.amount_usdc || 0), 0).toFixed(2);

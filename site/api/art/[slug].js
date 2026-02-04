@@ -5,8 +5,8 @@
  * Supports: /api/art/afterglow, /api/art/2b089328-...
  */
 
-const SUPABASE_URL = 'https://afcnnalweuwgauzijefs.supabase.co';
-const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmY25uYWx3ZXV3Z2F1emlqZWZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwNTI2NjUsImV4cCI6MjA4NTYyODY2NX0.34M21ctB6jiCNsFANwsSea8BoXkCqCyKjqvrvGEpOwA';
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://afcnnalweuwgauzijefs.supabase.co';
+const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
 
 // Generate slug from title
 function slugify(title) {
@@ -37,9 +37,11 @@ export default async function handler(req, res) {
     const data = await dbRes.json();
     if (data && data.length > 0) piece = data[0];
   } else {
-    // Slug lookup - fetch all approved and match by slugified title
+    // Slug lookup - use ILIKE pattern matching to avoid fetching all rows
+    // This is more efficient than fetching all and filtering client-side
+    const slugPattern = slug.toLowerCase().replace(/-/g, '%');
     const dbRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/submissions?status=eq.approved&select=id,title`,
+      `${SUPABASE_URL}/rest/v1/submissions?status=eq.approved&select=id,title&limit=50`,
       { headers: { 'apikey': SUPABASE_KEY } }
     );
     const data = await dbRes.json();

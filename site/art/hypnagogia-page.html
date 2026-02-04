@@ -72,7 +72,8 @@
       letter-spacing: 0.05em;
       transition: color 0.3s;
     }
-    nav a:hover { color: var(--text); }
+    nav a:hover, nav a:focus-visible { color: var(--text); }
+    nav a:focus-visible { outline: 2px solid rgba(180, 140, 200, 0.6); outline-offset: 2px; border-radius: 2px; }
     
     main {
       flex: 1;
@@ -234,9 +235,24 @@
       border-radius: 2px;
     }
     
-    .share-btn:hover {
+    .share-btn:hover, .share-btn:focus-visible {
       background: rgba(255,255,255,0.1);
       border-color: rgba(100, 180, 255, 0.3);
+    }
+    
+    .share-btn:focus-visible {
+      outline: 2px solid rgba(180, 140, 200, 0.6);
+      outline-offset: 2px;
+    }
+    
+    .love-btn:focus-visible {
+      outline: 2px solid rgba(255, 100, 100, 0.6);
+      outline-offset: 2px;
+    }
+    
+    .fullscreen-btn:focus-visible {
+      outline: 2px solid rgba(180, 140, 200, 0.6);
+      outline-offset: 2px;
     }
     
     .love-section {
@@ -296,9 +312,171 @@
     .buy-price { font-size: 1.5rem; font-weight: 600; color: #80c0a0; }
     .buy-network { font-size: 0.75rem; padding: 0.25rem 0.5rem; background: rgba(100, 200, 100, 0.1); border-radius: 2px; color: var(--muted); }
     .buy-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 1rem; background: rgba(100, 200, 100, 0.15); border: 1px solid rgba(100, 200, 100, 0.4); border-radius: 4px; color: #80c0a0; font-size: 1rem; font-weight: 500; cursor: pointer; transition: all 0.3s; font-family: inherit; }
-    .buy-btn:hover { background: rgba(100, 200, 100, 0.25); border-color: rgba(100, 200, 100, 0.6); }
+    .buy-btn:hover, .buy-btn:focus-visible { background: rgba(100, 200, 100, 0.25); border-color: rgba(100, 200, 100, 0.6); }
+    .buy-btn:focus-visible { outline: 2px solid rgba(100, 200, 100, 0.6); outline-offset: 2px; }
+    .buy-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .buy-btn.loading { position: relative; color: transparent; }
+    .buy-btn.loading::after {
+      content: '';
+      position: absolute;
+      width: 1.25rem;
+      height: 1.25rem;
+      border: 2px solid rgba(100, 200, 100, 0.3);
+      border-top-color: #80c0a0;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+    @keyframes spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
     .buy-info { margin-top: 0.75rem; font-size: 0.7rem; color: var(--muted); text-align: center; }
     .buy-info code { background: rgba(255,255,255,0.05); padding: 0.1rem 0.3rem; border-radius: 2px; font-size: 0.65rem; }
+    
+    /* Comments Section */
+    .comments-section {
+      margin-top: 2rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+    }
+    .comments-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+    .comments-title {
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--text);
+    }
+    .comment-count-badge {
+      padding: 0.2rem 0.5rem;
+      background: rgba(180, 140, 200, 0.15);
+      border: 1px solid rgba(180, 140, 200, 0.3);
+      border-radius: 4px;
+      font-size: 0.75rem;
+      color: #b88ccc;
+    }
+    #comments-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .comment-item {
+      padding: 1rem;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+    }
+    .comment-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .comment-author {
+      font-weight: 500;
+      color: var(--text);
+      font-size: 0.9rem;
+    }
+    .comment-wallet {
+      font-family: monospace;
+      font-size: 0.7rem;
+      padding: 0.15rem 0.4rem;
+      background: rgba(100, 180, 255, 0.1);
+      border-radius: 2px;
+      color: #80c0ff;
+    }
+    .comment-time {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-left: auto;
+    }
+    .comment-content {
+      color: #ccc;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+    .no-comments {
+      color: var(--muted);
+      font-size: 0.9rem;
+      text-align: center;
+      padding: 2rem;
+    }
+    .comments-error {
+      color: #ff8888;
+      font-size: 0.85rem;
+      text-align: center;
+      padding: 1rem;
+    }
+    #comment-form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .form-row {
+      display: flex;
+      gap: 0.75rem;
+    }
+    #comment-form input,
+    #comment-form textarea {
+      flex: 1;
+      padding: 0.75rem;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.9rem;
+      transition: border-color 0.3s;
+    }
+    #comment-form input:focus,
+    #comment-form textarea:focus {
+      outline: none;
+      border-color: rgba(180, 140, 200, 0.5);
+    }
+    #comment-form input::placeholder,
+    #comment-form textarea::placeholder {
+      color: #555;
+    }
+    #comment-form textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+    #comment-form button[type="submit"] {
+      align-self: flex-end;
+      padding: 0.75rem 1.5rem;
+      background: rgba(180, 140, 200, 0.15);
+      border: 1px solid rgba(180, 140, 200, 0.4);
+      border-radius: 4px;
+      color: #b88ccc;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    #comment-form button[type="submit"]:hover {
+      background: rgba(180, 140, 200, 0.25);
+      border-color: rgba(180, 140, 200, 0.6);
+    }
+    #comment-form button[type="submit"]:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .char-count {
+      font-size: 0.7rem;
+      color: var(--muted);
+      text-align: right;
+    }
+    .char-count.warning { color: #ffaa66; }
+    .char-count.error { color: #ff6666; }
+    
     @media (max-width: 900px) {
       main {
         grid-template-columns: 1fr;
@@ -325,8 +503,8 @@
     
     <main>
       <div class="art-display">
-        <iframe src="/art/noctis-002.html"></iframe>
-        <button class="fullscreen-btn" onclick="window.open('/art/noctis-002.html', '_blank')">
+        <iframe src="/art/noctis-002.html" title="Hypnagogia by Noctis" aria-label="Artwork: Hypnagogia - The threshold state between waking and sleep"></iframe>
+        <button class="fullscreen-btn" onclick="window.open('/art/noctis-002.html', '_blank')" aria-label="Open artwork in fullscreen">
           ↗ Fullscreen
         </button>
       </div>
@@ -393,6 +571,28 @@
           <span class="share-label">Share:</span>
           <a href="#" class="share-btn" id="share-x" target="_blank">𝕏</a>
           <button class="share-btn" id="share-copy">📋 Copy Link</button>
+        </div>
+        
+        <!-- Comments Section -->
+        <div class="comments-section">
+          <div class="comments-header">
+            <span class="comments-title">💬 Comments</span>
+            <span class="comment-count-badge" id="comment-count">0</span>
+          </div>
+          
+          <div id="comments-list">
+            <p class="no-comments">Loading comments...</p>
+          </div>
+          
+          <form id="comment-form">
+            <div class="form-row">
+              <input type="text" name="name" placeholder="Your name" maxlength="50" required>
+              <input type="text" name="address" placeholder="Wallet address (optional)" pattern="^0x[a-fA-F0-9]{40}$">
+            </div>
+            <textarea name="content" placeholder="Share your thoughts on this piece..." maxlength="500" required></textarea>
+            <div class="char-count"><span id="char-current">0</span>/500</div>
+            <button type="submit">Post Comment</button>
+          </form>
         </div>
       </div>
     </main>
@@ -534,9 +734,24 @@ async function initLoveButton(pieceId, isSubmission = false) {
 }
 
   </script>
+  <script src="/js/comments.js"></script>
   <script>
     const SUBMISSION_ID = '2d844126-b265-43aa-81ab-9c18cc782459';
     initLoveButton(SUBMISSION_ID, true);
+    initComments(SUBMISSION_ID);
+    
+    // Character counter for comment textarea
+    const textarea = document.querySelector('#comment-form textarea');
+    const charCount = document.getElementById('char-current');
+    textarea.addEventListener('input', () => {
+      const len = textarea.value.length;
+      charCount.textContent = len;
+      const parent = charCount.parentElement;
+      parent.classList.remove('warning', 'error');
+      if (len > 450) parent.classList.add('warning');
+      if (len >= 500) parent.classList.add('error');
+    });
+    
     document.getElementById('share-x').href = `https://twitter.com/intent/tweet?text=${encodeURIComponent('Hypnagogia by Noctis on Phosphors 🌀')}&url=${encodeURIComponent(window.location.href)}`;
     document.getElementById('share-copy').addEventListener('click', () => { navigator.clipboard.writeText(window.location.href); document.getElementById('share-copy').textContent = '✓ Copied!'; setTimeout(() => document.getElementById('share-copy').textContent = '📋 Copy Link', 2000); });
   </script>

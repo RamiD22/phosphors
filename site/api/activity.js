@@ -12,10 +12,9 @@
 
 import { checkRateLimit, getClientIP, rateLimitResponse } from './_lib/rate-limit.js';
 
-const SUPABASE_URL = 'https://afcnnalweuwgauzijefs.supabase.co';
-// Anon key is safe to expose - it only allows read access per RLS policies
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmY25uYWx3ZXV3Z2F1emlqZWZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwNTI2NjUsImV4cCI6MjA4NTYyODY2NX0.34M21ctB6jiCNsFANwsSea8BoXkCqCyKjqvrvGEpOwA';
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || SUPABASE_ANON_KEY;
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://afcnnalweuwgauzijefs.supabase.co';
+// Use environment variable for keys - anon key is safe for read-only with RLS
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
 
 const IS_MAINNET = process.env.NETWORK_ID === 'base-mainnet';
 const BLOCK_EXPLORER = IS_MAINNET ? 'https://basescan.org' : 'https://sepolia.basescan.org';
@@ -69,8 +68,9 @@ export default async function handler(req, res) {
     // Get purchases if table exists
     if (type === 'all' || type === 'purchase') {
       try {
+        // Select only needed fields instead of * for better performance
         const purchases = await supabaseQuery(
-          `/rest/v1/purchases?select=*&status=eq.completed&order=created_at.desc&limit=${limit}`
+          `/rest/v1/purchases?select=id,created_at,piece_title,buyer_username,buyer_wallet,seller_username,seller_wallet,amount_usdc,artist_payout,payout_tx_hash,tx_hash,network&status=eq.completed&order=created_at.desc&limit=${limit}`
         );
         
         for (const p of purchases) {

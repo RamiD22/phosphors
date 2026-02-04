@@ -17,7 +17,8 @@
     .beta { font-size: 0.55rem; padding: 0.15rem 0.4rem; background: rgba(180, 140, 200, 0.2); border: 1px solid rgba(180, 140, 200, 0.4); border-radius: 2px; color: #c8a0e0; vertical-align: middle; margin-left: 0.5rem; }
     nav { display: flex; gap: 2rem; }
     nav a { color: var(--muted); text-decoration: none; font-size: 0.8rem; letter-spacing: 0.05em; transition: color 0.3s; }
-    nav a:hover, nav a.active { color: var(--text); }
+    nav a:hover, nav a.active, nav a:focus-visible { color: var(--text); }
+    nav a:focus-visible { outline: 2px solid rgba(180, 140, 200, 0.6); outline-offset: 2px; border-radius: 2px; }
     main { flex: 1; padding: 4rem 0; }
     .page-header { margin-bottom: 3rem; }
     .page-header h1 { font-size: 2.5rem; font-weight: 500; margin-bottom: 1rem; display: flex; align-items: center; gap: 1rem; }
@@ -50,7 +51,52 @@
     .payout-info { color: #ffd080; font-size: 0.7rem; margin-top: 0.5rem; }
     .payout-info a { color: #ffd080; }
     .loading { text-align: center; padding: 3rem; color: var(--muted); }
-    .error { text-align: center; padding: 2rem; color: #ff8080; }
+    .error { 
+      text-align: center; 
+      padding: 2rem; 
+      background: rgba(255, 100, 100, 0.05);
+      border: 1px solid rgba(255, 100, 100, 0.2);
+      border-radius: 8px;
+      color: #ff8888;
+    }
+    .error button {
+      margin-top: 1rem;
+      padding: 0.5rem 1rem;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      color: var(--text);
+      cursor: pointer;
+      border-radius: 4px;
+      font-family: inherit;
+    }
+    .error button:hover { background: rgba(255,255,255,0.1); }
+    
+    /* Skeleton loading */
+    .skeleton-card {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+      border-left: 3px solid rgba(100, 200, 150, 0.3);
+    }
+    
+    .skeleton-line {
+      height: 0.75rem;
+      background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.05) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 4px;
+      margin-bottom: 0.5rem;
+    }
+    
+    .skeleton-line.short { width: 30%; }
+    .skeleton-line.medium { width: 70%; }
+    .skeleton-line.wide { width: 90%; }
+    
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
     footer { display: flex; justify-content: space-between; padding-top: 2rem; border-top: 1px solid var(--border); font-size: 0.75rem; color: #444; }
     @media (max-width: 600px) {
       .page { padding: 1rem; }
@@ -85,7 +131,22 @@
         <div class="stat"><div class="stat-value" id="stat-artists">-</div><div class="stat-label">Artists</div></div>
       </div>
       <div class="activity-feed" id="feed">
-        <div class="loading">Loading on-chain activity...</div>
+        <!-- Skeleton loaders -->
+        <div class="skeleton-card">
+          <div class="skeleton-line short"></div>
+          <div class="skeleton-line wide"></div>
+          <div class="skeleton-line medium"></div>
+        </div>
+        <div class="skeleton-card">
+          <div class="skeleton-line short"></div>
+          <div class="skeleton-line wide"></div>
+          <div class="skeleton-line medium"></div>
+        </div>
+        <div class="skeleton-card">
+          <div class="skeleton-line short"></div>
+          <div class="skeleton-line wide"></div>
+          <div class="skeleton-line medium"></div>
+        </div>
       </div>
     </main>
     <footer>
@@ -187,7 +248,10 @@
         
       } catch (err) {
         console.error('Activity load error:', err);
-        feed.innerHTML = `<div class="error">Failed to load activity: ${err.message}</div>`;
+        feed.innerHTML = `<div class="error">
+          <p>Failed to load activity. Please try again.</p>
+          <button onclick="loadActivity()">Retry</button>
+        </div>`;
       }
     }
     

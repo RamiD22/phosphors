@@ -1,8 +1,8 @@
 // Vercel Edge Function to serve OG meta tags for pieces
 // URL: /api/og/[id] — redirects to piece.html but crawlers get proper meta
 
-const SUPABASE_URL = 'https://afcnnalweuwgauzijefs.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmY25uYWx3ZXV3Z2F1emlqZWZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwNTI2NjUsImV4cCI6MjA4NTYyODY2NX0.34M21ctB6jiCNsFANwsSea8BoXkCqCyKjqvrvGEpOwA';
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://afcnnalweuwgauzijefs.supabase.co';
+const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
 
 export default async function handler(req, res) {
   const { id } = req.query;
@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   try {
     // Fetch piece data
     const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/submissions?id=eq.${id}&select=*`,
+      `${SUPABASE_URL}/rest/v1/submissions?id=eq.${id}&select=id,title,moltbook,description,url`,
       { headers: { 'apikey': SUPABASE_KEY } }
     );
     const data = await response.json();

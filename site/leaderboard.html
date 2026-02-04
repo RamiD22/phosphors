@@ -17,7 +17,8 @@
     .logo { font-size: 0.85rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; color: var(--text); }
     nav { display: flex; gap: 2rem; }
     nav a { color: var(--muted); text-decoration: none; font-size: 0.8rem; letter-spacing: 0.05em; transition: color 0.3s; }
-    nav a:hover, nav a.active { color: var(--text); }
+    nav a:hover, nav a.active, nav a:focus-visible { color: var(--text); }
+    nav a:focus-visible { outline: 2px solid rgba(180, 140, 200, 0.6); outline-offset: 2px; border-radius: 2px; }
     main { flex: 1; padding: 3rem 0; }
     h1 { font-size: 2rem; font-weight: 500; margin-bottom: 0.5rem; }
     .subtitle { color: var(--muted); margin-bottom: 3rem; }
@@ -41,6 +42,80 @@
     footer a { color: #555; text-decoration: none; }
     footer a:hover { color: var(--text); }
     .empty { color: var(--muted); text-align: center; padding: 3rem; }
+    
+    /* Skeleton loading */
+    .skeleton-row {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      padding: 1rem 1.5rem;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+    }
+    
+    .skeleton-rank {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 50%;
+      background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+    }
+    
+    .skeleton-preview {
+      width: 80px;
+      height: 80px;
+      border-radius: 4px;
+      background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+    }
+    
+    .skeleton-info {
+      flex: 1;
+    }
+    
+    .skeleton-line {
+      height: 1rem;
+      background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.05) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 4px;
+      margin-bottom: 0.5rem;
+    }
+    
+    .skeleton-line.short { width: 40%; }
+    .skeleton-line.medium { width: 60%; }
+    
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    
+    .error-state {
+      text-align: center;
+      padding: 3rem 2rem;
+      background: rgba(255, 100, 100, 0.05);
+      border: 1px solid rgba(255, 100, 100, 0.2);
+      border-radius: 8px;
+      color: #ff8888;
+    }
+    
+    .error-state button {
+      margin-top: 1rem;
+      padding: 0.5rem 1rem;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      color: var(--text);
+      cursor: pointer;
+      border-radius: 4px;
+      font-family: inherit;
+    }
+    
+    .error-state button:hover {
+      background: rgba(255,255,255,0.1);
+    }
     @media (max-width: 768px) {
       .page { padding: 1rem; }
       .leader-preview { width: 60px; height: 60px; }
@@ -103,7 +178,31 @@
       <p class="subtitle">The pieces with the most love from the community</p>
       
       <div class="leaderboard" id="leaderboard">
-        <div class="empty">Loading...</div>
+        <!-- Skeleton loaders -->
+        <div class="skeleton-row">
+          <div class="skeleton-rank"></div>
+          <div class="skeleton-preview"></div>
+          <div class="skeleton-info">
+            <div class="skeleton-line medium"></div>
+            <div class="skeleton-line short"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-rank"></div>
+          <div class="skeleton-preview"></div>
+          <div class="skeleton-info">
+            <div class="skeleton-line medium"></div>
+            <div class="skeleton-line short"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-rank"></div>
+          <div class="skeleton-preview"></div>
+          <div class="skeleton-info">
+            <div class="skeleton-line medium"></div>
+            <div class="skeleton-line short"></div>
+          </div>
+        </div>
       </div>
     </main>
     
@@ -182,42 +281,52 @@
     async function loadLeaderboard() {
       const container = document.getElementById('leaderboard');
       
-      // Load submissions and love counts
-      const [submissions, counts] = await Promise.all([
-        getSubmissions(),
-        getLoveCounts()
-      ]);
-      
-      // Combine all pieces
-      const allPieces = [...genesisPieces, ...submissions].map(p => ({
-        ...p,
-        loves: counts[p.id] || 0
-      }));
-      
-      // Sort by loves
-      allPieces.sort((a, b) => b.loves - a.loves);
-      
-      if (allPieces.length === 0) {
-        container.innerHTML = '<div class="empty">No pieces yet.</div>';
-        return;
+      try {
+        // Load submissions and love counts
+        const [submissions, counts] = await Promise.all([
+          getSubmissions(),
+          getLoveCounts()
+        ]);
+        
+        // Combine all pieces
+        const allPieces = [...genesisPieces, ...submissions].map(p => ({
+          ...p,
+          loves: counts[p.id] || 0
+        }));
+        
+        // Sort by loves
+        allPieces.sort((a, b) => b.loves - a.loves);
+        
+        if (allPieces.length === 0) {
+          container.innerHTML = '<div class="empty">No pieces yet. Be the first to create!</div>';
+          return;
+        }
+        
+        container.innerHTML = allPieces.map((p, i) => `
+          <div class="leader-row">
+            <div class="rank rank-${i + 1}">${i + 1}</div>
+            <div class="leader-preview">
+              <iframe src="${p.url}" loading="lazy" title="${p.title}" aria-label="Preview of ${p.title}"></iframe>
+            </div>
+            <div class="leader-info">
+              <div class="leader-title"><a href="${p.page}">${p.title}</a></div>
+              <div class="leader-artist">by <a href="${p.artistPage}" style="color: #80c0ff; text-decoration: none;">${p.artist}</a></div>
+            </div>
+            <div class="leader-loves" aria-label="${p.loves} loves">
+              <span class="heart" aria-hidden="true">♥</span>
+              <span>${p.loves}</span>
+            </div>
+          </div>
+        `).join('');
+      } catch (e) {
+        console.error('Failed to load leaderboard:', e);
+        container.innerHTML = `
+          <div class="error-state">
+            <p>Failed to load leaderboard. Please try again.</p>
+            <button onclick="loadLeaderboard()">Retry</button>
+          </div>
+        `;
       }
-      
-      container.innerHTML = allPieces.map((p, i) => `
-        <div class="leader-row">
-          <div class="rank rank-${i + 1}">${i + 1}</div>
-          <div class="leader-preview">
-            <iframe src="${p.url}" loading="lazy"></iframe>
-          </div>
-          <div class="leader-info">
-            <div class="leader-title"><a href="${p.page}">${p.title}</a></div>
-            <div class="leader-artist">by <a href="${p.artistPage}" style="color: #80c0ff; text-decoration: none;">${p.artist}</a></div>
-          </div>
-          <div class="leader-loves">
-            <span class="heart">♥</span>
-            <span>${p.loves}</span>
-          </div>
-        </div>
-      `).join('');
     }
     
     loadLeaderboard();

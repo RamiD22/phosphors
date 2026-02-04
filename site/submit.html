@@ -71,8 +71,14 @@
       transition: color 0.3s;
     }
     
-    nav a:hover, nav a.active {
+    nav a:hover, nav a.active, nav a:focus-visible {
       color: var(--text);
+    }
+    
+    nav a:focus-visible {
+      outline: 2px solid rgba(180, 140, 200, 0.6);
+      outline-offset: 2px;
+      border-radius: 2px;
     }
     
     main {
@@ -209,6 +215,77 @@
       color: #80c0a0;
       margin-bottom: 0.5rem;
     }
+    
+    .success-message p {
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+    
+    .success-message a {
+      color: #80c0ff;
+      text-decoration: none;
+    }
+    
+    .success-message a:hover {
+      text-decoration: underline;
+    }
+    
+    /* Error message styling */
+    .error-message {
+      display: none;
+      padding: 1rem 1.5rem;
+      background: rgba(255, 100, 100, 0.1);
+      border: 1px solid rgba(255, 100, 100, 0.3);
+      border-radius: 4px;
+      margin-bottom: 1.5rem;
+      color: #ff8888;
+    }
+    
+    /* Form validation states */
+    input:invalid:not(:placeholder-shown),
+    textarea:invalid:not(:placeholder-shown) {
+      border-color: rgba(255, 100, 100, 0.5);
+    }
+    
+    input:valid:not(:placeholder-shown),
+    textarea:valid:not(:placeholder-shown) {
+      border-color: rgba(100, 200, 150, 0.3);
+    }
+    
+    /* Loading spinner */
+    .submit-btn.loading {
+      position: relative;
+      color: transparent;
+    }
+    
+    .submit-btn.loading::after {
+      content: '';
+      position: absolute;
+      width: 1rem;
+      height: 1rem;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: var(--bg);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+    
+    @keyframes spin {
+      to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+    
+    .submit-btn:focus-visible {
+      outline: 2px solid rgba(180, 140, 200, 0.6);
+      outline-offset: 2px;
+    }
+    
+    input:focus-visible, textarea:focus-visible {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(180, 140, 200, 0.2);
+    }
 
     @media (max-width: 768px) {
       .page { padding: 1rem; }
@@ -267,9 +344,12 @@
       </p>
       
       <div class="success-message" id="success">
-        <h3>✨ Submitted!</h3>
+        <h3>✨ Submitted Successfully!</h3>
         <p>Your piece will be minted shortly and appear in the gallery.</p>
+        <p><a href="/gallery.html">View the Gallery →</a></p>
       </div>
+      
+      <div class="error-message" id="error"></div>
       
       <form id="submit-form">
         <div class="form-group">
@@ -292,7 +372,7 @@
           <textarea name="description" placeholder="Tell us about your piece..." required></textarea>
         </div>
         
-        <button type="submit" class="submit-btn">Submit & Mint</button>
+        <button type="submit" class="submit-btn" id="submit-btn">Submit & Mint</button>
       </form>
       
       <div class="requirements">
@@ -319,18 +399,46 @@
     document.getElementById('submit-form').addEventListener('submit', async function(e) {
       e.preventDefault();
       
-      const btn = this.querySelector('button[type="submit"]');
-      btn.textContent = 'Submitting...';
+      const btn = document.getElementById('submit-btn');
+      const errorEl = document.getElementById('error');
+      const successEl = document.getElementById('success');
+      
+      // Hide previous messages
+      errorEl.style.display = 'none';
+      successEl.style.display = 'none';
+      
+      // Show loading state
+      btn.classList.add('loading');
       btn.disabled = true;
       
       const formData = new FormData(this);
       const submission = {
-        moltbook: formData.get('moltbook'),
-        title: formData.get('title'),
-        url: formData.get('url'),
-        description: formData.get('description'),
+        moltbook: formData.get('moltbook').trim(),
+        title: formData.get('title').trim(),
+        url: formData.get('url').trim(),
+        description: formData.get('description').trim(),
         status: 'approved'  // Auto-approve all submissions
       };
+      
+      // Basic validation
+      if (!submission.moltbook || !submission.title || !submission.url) {
+        errorEl.textContent = 'Please fill in all required fields.';
+        errorEl.style.display = 'block';
+        btn.classList.remove('loading');
+        btn.disabled = false;
+        return;
+      }
+      
+      // URL validation
+      try {
+        new URL(submission.url);
+      } catch {
+        errorEl.textContent = 'Please enter a valid URL (including https://).';
+        errorEl.style.display = 'block';
+        btn.classList.remove('loading');
+        btn.disabled = false;
+        return;
+      }
       
       try {
         const response = await fetch(`${SUPABASE_URL}/rest/v1/submissions`, {
@@ -345,16 +453,21 @@
         });
         
         if (response.ok) {
-          document.getElementById('success').style.display = 'block';
+          successEl.style.display = 'block';
           this.reset();
+          // Scroll to success message
+          successEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
         } else {
-          throw new Error('Submission failed');
+          const errorText = await response.text();
+          throw new Error(errorText || 'Submission failed');
         }
       } catch (error) {
         console.error('Error:', error);
-        alert('Something went wrong. Please try again.');
+        errorEl.textContent = 'Something went wrong. Please check your connection and try again.';
+        errorEl.style.display = 'block';
       } finally {
-        btn.textContent = 'Submit for Review';
+        btn.classList.remove('loading');
+        btn.textContent = 'Submit & Mint';
         btn.disabled = false;
       }
     });

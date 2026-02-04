@@ -37,6 +37,9 @@ export default async function handler(req, res) {
       warning = 'Low funds! Funder wallet needs replenishment.';
     }
     
+    // Cache for 60 seconds - funder balance doesn't change frequently
+    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=120');
+    
     return res.status(200).json({
       success: true,
       funder: {

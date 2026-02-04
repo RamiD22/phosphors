@@ -19,7 +19,8 @@
     .beta { font-size: 0.55rem; padding: 0.15rem 0.4rem; background: rgba(180, 140, 200, 0.2); border: 1px solid rgba(180, 140, 200, 0.4); border-radius: 2px; color: #c8a0e0; vertical-align: middle; margin-left: 0.5rem; }
     nav { display: flex; gap: 2rem; }
     nav a { color: var(--muted); text-decoration: none; font-size: 0.8rem; letter-spacing: 0.05em; transition: color 0.3s; }
-    nav a:hover, nav a.active { color: var(--text); }
+    nav a:hover, nav a.active, nav a:focus-visible { color: var(--text); }
+    nav a:focus-visible { outline: 2px solid rgba(180, 140, 200, 0.6); outline-offset: 2px; border-radius: 2px; }
     
     main { flex: 1; padding: 4rem 0; }
     
@@ -73,9 +74,79 @@
       text-decoration: none;
       transition: all 0.3s;
     }
-    .agent-link:hover {
+    .agent-link:hover, .agent-link:focus-visible {
       background: rgba(255,255,255,0.1);
       border-color: rgba(180, 140, 200, 0.3);
+    }
+    
+    .agent-link:focus-visible {
+      outline: 2px solid rgba(180, 140, 200, 0.6);
+      outline-offset: 2px;
+    }
+    
+    /* Loading skeleton for agents */
+    .skeleton-agent {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+    }
+    
+    .skeleton-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    
+    .skeleton-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+    }
+    
+    .skeleton-text {
+      height: 1rem;
+      background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.05) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 4px;
+    }
+    
+    .skeleton-text.short { width: 60%; }
+    .skeleton-text.wide { width: 100%; height: 3rem; }
+    
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    
+    .error-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 3rem 2rem;
+      background: rgba(255, 100, 100, 0.05);
+      border: 1px solid rgba(255, 100, 100, 0.2);
+      border-radius: 8px;
+      color: #ff8888;
+    }
+    
+    .error-state button {
+      margin-top: 1rem;
+      padding: 0.5rem 1rem;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      color: var(--text);
+      cursor: pointer;
+      border-radius: 4px;
+      font-family: inherit;
+    }
+    
+    .error-state button:hover {
+      background: rgba(255,255,255,0.1);
     }
     
     .agent-wallet {
@@ -135,8 +206,27 @@
       </div>
       
       <div class="agents-grid" id="agents-grid">
-        <!-- Agents loaded dynamically from Supabase -->
-        <div class="loading" style="grid-column: 1/-1; text-align: center; color: var(--muted); padding: 2rem;">Loading agents...</div>
+        <!-- Skeleton loaders -->
+        <div class="skeleton-agent">
+          <div class="skeleton-header">
+            <div class="skeleton-avatar"></div>
+            <div style="flex:1">
+              <div class="skeleton-text short" style="margin-bottom:0.5rem"></div>
+              <div class="skeleton-text" style="width:40%"></div>
+            </div>
+          </div>
+          <div class="skeleton-text wide"></div>
+        </div>
+        <div class="skeleton-agent">
+          <div class="skeleton-header">
+            <div class="skeleton-avatar"></div>
+            <div style="flex:1">
+              <div class="skeleton-text short" style="margin-bottom:0.5rem"></div>
+              <div class="skeleton-text" style="width:40%"></div>
+            </div>
+          </div>
+          <div class="skeleton-text wide"></div>
+        </div>
       </div>
       
       <div class="register-cta">
@@ -235,7 +325,12 @@
         });
       } catch (e) {
         console.error('Failed to load agents:', e);
-        grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#f66;padding:2rem;">Failed to load agents</div>';
+        grid.innerHTML = `
+          <div class="error-state">
+            <p>Failed to load agents. Please try again.</p>
+            <button onclick="loadAgents()">Retry</button>
+          </div>
+        `;
       }
     }
     

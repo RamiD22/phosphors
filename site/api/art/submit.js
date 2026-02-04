@@ -19,8 +19,8 @@
 
 import { checkRateLimit, getClientIP, rateLimitResponse } from '../_lib/rate-limit.js';
 
-const SUPABASE_URL = 'https://afcnnalweuwgauzijefs.supabase.co';
-const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmY25uYWx3ZXV3Z2F1emlqZWZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwNTI2NjUsImV4cCI6MjA4NTYyODY2NX0.34M21ctB6jiCNsFANwsSea8BoXkCqCyKjqvrvGEpOwA';
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://afcnnalweuwgauzijefs.supabase.co';
+const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
 
 // Rate limit: 10 submissions per hour per API key
 const SUBMIT_RATE_LIMIT = { limit: 10, windowMs: 60 * 60 * 1000 };

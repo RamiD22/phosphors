@@ -15,8 +15,13 @@ const PAY_TO = process.env.MINTER_WALLET || '0xc27b70A5B583C6E3fF90CcDC4577cC4f1
 const ARTIST_SHARE = 1.0;
 
 // Supabase config
-const SUPABASE_URL = 'https://afcnnalweuwgauzijefs.supabase.co';
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://afcnnalweuwgauzijefs.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
+
+// Validate transaction hash format
+function isValidTxHash(hash) {
+  return typeof hash === 'string' && /^0x[a-fA-F0-9]{64}$/.test(hash);
+}
 
 // Art prices in USDC
 const PRICES = {
@@ -173,6 +178,14 @@ export default async function handler(req, res) {
     }
   }
   
+  // Validate transaction hash format if provided
+  if (paymentTx && !isValidTxHash(paymentTx)) {
+    return res.status(400).json({ 
+      error: 'Invalid payment transaction hash format',
+      expected: '0x followed by 64 hex characters'
+    });
+  }
+  
   if (!paymentTx) {
     // Return 402 with payment requirements
     // Get artist wallet for direct payment option
@@ -208,11 +221,12 @@ export default async function handler(req, res) {
   
   // Payment received - process purchase
   try {
-    console.log(`Processing purchase: ${pieceTitle} by ${buyer}`);
-    console.log(`Payment TX: ${paymentTx}`);
+    // Get artist wallet and buyer username in parallel for better performance
+    const [artistWallet, buyerUsername] = await Promise.all([
+      getArtistWallet(artistUsername),
+      getBuyerUsername(buyer)
+    ]);
     
-    // Get artist wallet for payout
-    const artistWallet = await getArtistWallet(artistUsername);
     let payoutTxHash = null;
     let artistPayout = 0;
     
@@ -233,8 +247,6 @@ export default async function handler(req, res) {
           networkId: NETWORK_ID
         });
         
-        console.log(`Paying ${artistPayout} USDC to artist ${artistUsername} (${artistWallet})`);
-        
         const payoutTransfer = await wallet.createTransfer({
           amount: artistPayout,
           assetId: 'usdc',
@@ -244,17 +256,12 @@ export default async function handler(req, res) {
         
         await payoutTransfer.wait();
         payoutTxHash = payoutTransfer.getTransactionHash();
-        
-        console.log(`✅ Artist payout TX: ${payoutTxHash}`);
       } catch (payoutErr) {
         console.error('Artist payout failed:', payoutErr.message);
         artistPayout = 0; // Reset since payout failed
         // Continue without payout - we got the payment, record it anyway
       }
     }
-    
-    // Look up buyer username
-    const buyerUsername = await getBuyerUsername(buyer);
     
     // Record the purchase (always do this, even if payout failed)
     await recordPurchase({
