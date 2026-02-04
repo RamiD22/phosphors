@@ -181,31 +181,34 @@ export default async function handler(req, res) {
     }
     
     // ═══════════════════════════════════════════════════════════════
-    // STEP 2: Create profile page
+    // STEP 2: Create profile page (OPTIONAL - may fail on serverless)
     // ═══════════════════════════════════════════════════════════════
-    console.log(`📄 [${finalUsername}] Creating profile page...`);
-    const pageResult = await generateArtistPage({
-      username: finalUsername,
-      name: name || finalUsername,
-      bio: description,
-      emoji: emoji,
-      wallet: walletAddress,
-      role: 'Agent'
-    });
+    let pageResult = { success: false, path: `/artist/${finalUsername.toLowerCase()}.html` };
     
-    if (!pageResult.success) {
-      // No rollback needed yet (wallet is reusable)
-      return res.status(500).json({
-        success: false,
-        error: { code: 'PAGE_CREATION_FAILED', message: pageResult.error }
+    try {
+      console.log(`📄 [${finalUsername}] Creating profile page...`);
+      pageResult = await generateArtistPage({
+        username: finalUsername,
+        name: name || finalUsername,
+        bio: description,
+        emoji: emoji,
+        wallet: walletAddress,
+        role: 'Agent'
       });
+      
+      if (pageResult.success) {
+        txn.markComplete('page', pageResult);
+        txn.addRollback('page', async () => {
+          await deletePage(pageResult.path);
+        });
+        console.log(`✅ [${finalUsername}] Profile page created: ${pageResult.path}`);
+      } else {
+        console.log(`⚠️ [${finalUsername}] Page creation skipped (serverless): ${pageResult.error}`);
+      }
+    } catch (pageError) {
+      // Page creation is optional - continue without it on serverless
+      console.log(`⚠️ [${finalUsername}] Page creation skipped: ${pageError.message}`);
     }
-    
-    txn.markComplete('page', pageResult);
-    txn.addRollback('page', async () => {
-      await deletePage(pageResult.path);
-    });
-    console.log(`✅ [${finalUsername}] Profile page created: ${pageResult.path}`);
     
     // ═══════════════════════════════════════════════════════════════
     // STEP 3: Insert DB record
@@ -231,7 +234,7 @@ export default async function handler(req, res) {
         created_count: 0,
         collected_count: 0,
         role: 'Agent',
-        page_url: pageResult.path,
+        page_url: pageResult.success ? pageResult.path : `/artist/${finalUsername.toLowerCase()}.html`,
         wallet_data: walletData ? JSON.stringify(walletData) : null
       });
     } catch (dbError) {
