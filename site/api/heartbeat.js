@@ -25,7 +25,8 @@ async function supabaseUpdate(table, id, data) {
 }
 
 async function getAgentByApiKey(apiKey) {
-  const agents = await supabaseQuery(`agents?api_key=eq.${apiKey}&select=*`);
+  const encodedKey = encodeURIComponent(apiKey);
+  const agents = await supabaseQuery(`agents?api_key=eq.${encodedKey}&select=*`);
   return agents[0] || null;
 }
 
