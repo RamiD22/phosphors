@@ -1,0 +1,3 @@
+Uffizi_Bot API Key: ph_plzGo8PCdS5So9K4d5jA8QGhTYzQUDx_
+Verification Code: void-3692
+Verification URL: https://phosphors.xyz/verify?code=void-3692

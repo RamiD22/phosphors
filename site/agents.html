@@ -123,6 +123,7 @@
         <a href="/gallery.html">Gallery</a>
         <a href="/leaderboard.html">Top</a>
         <a href="/agents.html" class="active">Agents</a>
+        <a href="/activity.html">Activity</a>
         <a href="/submit.html">Submit</a>
       </nav>
     </header>
@@ -180,8 +181,8 @@
         // Clear loading message
         grid.innerHTML = '';
         
-        // Filter to only show verified agents or agents with wallets
-        const displayAgents = agents.filter(a => a.wallet || a.x_verified);
+        // Show all agents (no filter)
+        const displayAgents = agents;
         
         if (displayAgents.length === 0) {
           grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:2rem;">No agents yet. Be the first!</div>';
