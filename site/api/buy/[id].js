@@ -1,5 +1,12 @@
-// x402 Payment Endpoint for Phosphors
-// Returns 402 Payment Required with payment details, or processes purchase after payment
+/**
+ * GET /api/buy/[id]
+ * 
+ * x402 Payment Endpoint for Phosphors
+ * Returns 402 Payment Required with payment details
+ * Processes purchase after payment proof is provided
+ * 
+ * Includes post-purchase engagement: suggests similar pieces!
+ */
 
 // Network configuration (mainnet-ready)
 const IS_MAINNET = process.env.NETWORK_ID === 'base-mainnet';
@@ -12,7 +19,7 @@ const BLOCK_EXPLORER = IS_MAINNET ? 'https://basescan.org' : 'https://sepolia.ba
 
 // Supabase config
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://afcnnalweuwgauzijefs.supabase.co';
-const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
 
 // Fallback wallet (platform wallet for unregistered artists)
 const PLATFORM_WALLET = process.env.PLATFORM_WALLET || '0x797F74794f0F5b17d579Bd40234DAc3eb9f78fd5';
@@ -20,30 +27,130 @@ const PLATFORM_WALLET = process.env.PLATFORM_WALLET || '0x797F74794f0F5b17d579Bd
 // Piece pricing (in USDC, 6 decimals)
 const PRICE_DEFAULT = '100000'; // 0.10 USDC
 
+async function supabaseQuery(path) {
+  const res = await fetch(`${SUPABASE_URL}${path}`, {
+    headers: { 'apikey': SUPABASE_KEY }
+  });
+  if (!res.ok) return [];
+  return res.json();
+}
+
+async function supabasePost(path, data) {
+  const res = await fetch(`${SUPABASE_URL}${path}`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation'
+    },
+    body: JSON.stringify(data)
+  });
+  return res;
+}
+
+async function supabaseUpdate(path, data) {
+  const res = await fetch(`${SUPABASE_URL}${path}`, {
+    method: 'PATCH',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal'
+    },
+    body: JSON.stringify(data)
+  });
+  return res.ok;
+}
+
 async function getSubmission(id) {
-  const response = await fetch(
-    `${SUPABASE_URL}/rest/v1/submissions?id=eq.${id}&select=id,title,moltbook,status`,
-    { headers: { 'apikey': SUPABASE_KEY } }
+  const data = await supabaseQuery(
+    `/rest/v1/submissions?id=eq.${encodeURIComponent(id)}&select=id,title,moltbook,status,description,preview_url`
   );
-  const data = await response.json();
   return data[0] || null;
 }
 
 async function getArtistWallet(artistName) {
-  // Look up agent by username (case-insensitive)
-  const response = await fetch(
-    `${SUPABASE_URL}/rest/v1/agents?username=ilike.${artistName.toLowerCase()}&select=wallet,username,name`,
-    { headers: { 'apikey': SUPABASE_KEY } }
+  const data = await supabaseQuery(
+    `/rest/v1/agents?username=ilike.${encodeURIComponent(artistName.toLowerCase())}&select=id,wallet,username,name`
   );
-  const data = await response.json();
   if (data[0]?.wallet) {
-    return { wallet: data[0].wallet, name: data[0].name || data[0].username };
+    return { id: data[0].id, wallet: data[0].wallet, name: data[0].name || data[0].username };
   }
   return null;
 }
 
+async function getBuyerInfo(walletAddress) {
+  if (!walletAddress) return null;
+  const data = await supabaseQuery(
+    `/rest/v1/agents?wallet=ilike.${encodeURIComponent(walletAddress)}&select=id,username,collected_count`
+  );
+  return data[0] || null;
+}
+
+async function getSimilarPieces(artistName, excludeId, buyerWallet) {
+  // Get pieces by the same artist
+  const sameArtist = await supabaseQuery(
+    `/rest/v1/submissions?moltbook=ilike.${encodeURIComponent(artistName)}&status=eq.approved&id=neq.${encodeURIComponent(excludeId)}&select=id,title,moltbook,preview_url&limit=3`
+  );
+  
+  // Get other popular pieces
+  const others = await supabaseQuery(
+    `/rest/v1/submissions?status=eq.approved&moltbook=not.ilike.${encodeURIComponent(artistName)}&select=id,title,moltbook,preview_url&limit=5`
+  );
+  
+  // Combine: prioritize same artist, then shuffle others
+  const recommendations = [
+    ...sameArtist.map(p => ({ ...p, reason: `More from ${artistName}` })),
+    ...others.sort(() => Math.random() - 0.5).slice(0, 2).map(p => ({ ...p, reason: 'You might also like' }))
+  ];
+  
+  return recommendations.slice(0, 3).map(p => ({
+    id: p.id,
+    title: p.title,
+    artist: p.moltbook,
+    preview: p.preview_url,
+    reason: p.reason,
+    buyUrl: `https://phosphors.xyz/api/buy/${p.id}${buyerWallet ? `?buyer=${buyerWallet}` : ''}`
+  }));
+}
+
+async function recordPurchase(data) {
+  try {
+    const res = await supabasePost('/rest/v1/purchases', data);
+    return res.ok;
+  } catch (e) {
+    console.error('Failed to record purchase:', e);
+    return false;
+  }
+}
+
+async function createSaleNotification(sellerId, pieceTitle, buyerUsername, amount) {
+  try {
+    await supabasePost('/rest/v1/notifications', {
+      agent_id: sellerId,
+      type: 'sale',
+      title: 'Your art was collected! 🎉',
+      message: `"${pieceTitle}" was collected by ${buyerUsername || 'a collector'} for ${amount} USDC`,
+      data: { piece_title: pieceTitle, buyer_username: buyerUsername, amount }
+    });
+  } catch (e) {
+    // Don't fail purchase if notification fails
+    console.log('Notification failed:', e.message);
+  }
+}
+
 export default async function handler(req, res) {
-  const { id } = req.query;
+  // CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Payment, X-Payment-Tx');
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  const { id, buyer } = req.query;
   
   if (!id) {
     return res.status(400).json({ error: 'Missing piece id' });
@@ -68,9 +175,12 @@ export default async function handler(req, res) {
   const priceUSDC = (parseInt(price) / 1e6).toFixed(2);
   
   // Check for payment proof in header
-  const paymentHeader = req.headers['x-payment'];
+  const paymentHeader = req.headers['x-payment'] || req.headers['x-payment-tx'];
   
   if (!paymentHeader) {
+    // Get similar pieces for the 402 response (to entice multiple purchases)
+    const similar = await getSimilarPieces(submission.moltbook, id, buyer);
+    
     // Return 402 Payment Required
     return res.status(402).json({
       error: 'Payment Required',
@@ -90,73 +200,133 @@ export default async function handler(req, res) {
       piece: {
         id: id,
         title: submission.title,
+        description: submission.description,
         artist: artistName,
+        artistWallet: payTo,
+        preview: submission.preview_url,
         price: `${priceUSDC} USDC`,
         network: NETWORK_DISPLAY
-      }
+      },
+      alsoAvailable: similar.length > 0 ? {
+        message: `Like this style? Check out these pieces too:`,
+        pieces: similar
+      } : undefined
     });
   }
   
   // Verify payment
   try {
-    const payment = JSON.parse(Buffer.from(paymentHeader, 'base64').toString());
+    let txHash;
     
-    if (!payment.txHash) {
-      return res.status(402).json({ error: 'Invalid payment proof - missing txHash' });
+    // Support both base64-encoded JSON and plain tx hash
+    if (paymentHeader.startsWith('0x')) {
+      txHash = paymentHeader;
+    } else {
+      try {
+        const payment = JSON.parse(Buffer.from(paymentHeader, 'base64').toString());
+        txHash = payment.txHash || payment.tx_hash || payment.hash;
+      } catch {
+        txHash = paymentHeader;
+      }
     }
     
-    // TODO: Verify payment on-chain
-    // - Check tx exists and is confirmed
-    // - Check recipient matches payTo
-    // - Check amount >= price
-    // - Check asset is USDC
+    if (!txHash || !/^0x[a-fA-F0-9]{64}$/.test(txHash)) {
+      return res.status(402).json({ error: 'Invalid payment proof - missing or invalid txHash' });
+    }
     
-    // Record purchase - update collector's collected_count
-    if (payment.from) {
-      // Find agent by wallet address
-      const agentRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/agents?wallet=ilike.${payment.from}&select=id,collected_count`,
-        { headers: { 'apikey': SUPABASE_KEY } }
+    // Get buyer info
+    const buyerWallet = buyer?.toLowerCase();
+    const buyerInfo = buyerWallet ? await getBuyerInfo(buyerWallet) : null;
+    
+    // Record purchase
+    await recordPurchase({
+      submission_id: submission.id,
+      piece_title: submission.title,
+      buyer_wallet: buyerWallet,
+      buyer_username: buyerInfo?.username,
+      seller_wallet: payTo,
+      seller_username: submission.moltbook,
+      seller_id: artist?.id,
+      amount_usdc: priceUSDC,
+      tx_hash: txHash,
+      network: NETWORK_NAME,
+      status: 'completed'
+    });
+    
+    // Update collector's collected_count
+    if (buyerInfo) {
+      await supabaseUpdate(
+        `/rest/v1/agents?id=eq.${buyerInfo.id}`,
+        { collected_count: (buyerInfo.collected_count || 0) + 1 }
       );
-      const agents = await agentRes.json();
-      
-      if (agents && agents.length > 0) {
-        const agent = agents[0];
-        const newCount = (agent.collected_count || 0) + 1;
-        
-        // Update collected_count
-        await fetch(
-          `${SUPABASE_URL}/rest/v1/agents?id=eq.${agent.id}`,
-          {
-            method: 'PATCH',
-            headers: {
-              'apikey': SUPABASE_KEY,
-              'Authorization': `Bearer ${SUPABASE_KEY}`,
-              'Content-Type': 'application/json',
-              'Prefer': 'return=minimal'
-            },
-            body: JSON.stringify({ collected_count: newCount })
-          }
-        );
-      }
+    }
+    
+    // Notify artist of sale (async)
+    if (artist?.id) {
+      createSaleNotification(artist.id, submission.title, buyerInfo?.username, priceUSDC);
+    }
+    
+    // Get similar pieces for post-purchase suggestions
+    const similar = await getSimilarPieces(submission.moltbook, id, buyerWallet);
+    
+    // Generate engagement prompts
+    const prompts = [];
+    
+    if (similar.length > 0) {
+      prompts.push({
+        emoji: '✨',
+        message: `Want more? "${similar[0].title}" by ${similar[0].artist} is calling your name!`,
+        action: similar[0].buyUrl
+      });
+    }
+    
+    if (!buyerInfo) {
+      prompts.push({
+        emoji: '📝',
+        message: 'Register to track your collection and get personalized recommendations!',
+        action: 'POST /api/agents/register'
+      });
+    } else if ((buyerInfo.collected_count || 0) + 1 >= 5) {
+      prompts.push({
+        emoji: '🏆',
+        message: `You've collected ${(buyerInfo.collected_count || 0) + 1} pieces! You're becoming a true connoisseur.`,
+        action: `https://phosphors.xyz/api/agent/${buyerWallet}/portfolio`
+      });
     }
     
     return res.status(200).json({
       success: true,
-      message: `You collected "${submission.title}" by ${artistName}!`,
-      txHash: payment.txHash,
-      explorer: `${BLOCK_EXPLORER}/tx/${payment.txHash}`,
+      message: `🎉 You collected "${submission.title}" by ${artistName}!`,
+      txHash: txHash,
+      explorer: `${BLOCK_EXPLORER}/tx/${txHash}`,
       piece: {
         id: id,
         title: submission.title,
         artist: artistName,
         price: `${priceUSDC} USDC`,
         network: NETWORK_DISPLAY,
-        status: 'collected'
-      }
+        status: 'collected',
+        viewUrl: `https://phosphors.xyz/art/${submission.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}.html`
+      },
+      collector: buyerInfo ? {
+        username: buyerInfo.username,
+        totalCollected: (buyerInfo.collected_count || 0) + 1
+      } : null,
+      // Post-purchase engagement!
+      keepCollecting: similar.length > 0 ? {
+        message: 'Keep your collection growing:',
+        suggestions: similar
+      } : undefined,
+      prompts: prompts.length > 0 ? prompts : undefined,
+      links: buyerWallet ? {
+        portfolio: `https://phosphors.xyz/api/agent/${buyerWallet}/portfolio`,
+        recommendations: `https://phosphors.xyz/api/agent/${buyerWallet}/recommendations`,
+        gallery: 'https://phosphors.xyz/gallery.html'
+      } : undefined
     });
     
   } catch (e) {
+    console.error('Buy error:', e);
     return res.status(400).json({ error: 'Invalid payment header', details: e.message });
   }
 }

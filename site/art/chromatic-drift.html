@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CHROMATIC DRIFT</title>
+  <style>
+    * { margin: 0; padding: 0; }
+    body { 
+      background: #0a0a12; 
+      overflow: hidden;
+    }
+    canvas { 
+      display: block;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    
+    const SCALE = 2;
+    let W, H, cols, rows;
+    let frame = 0;
+    
+    // Noise permutation
+    const p = new Uint8Array(512);
+    for (let i = 0; i < 256; i++) p[i] = p[i + 256] = (Math.sin(i * 127.1) * 43758.5453) & 255;
+    
+    function noise2D(x, y) {
+      const xi = Math.floor(x) & 255;
+      const yi = Math.floor(y) & 255;
+      const xf = x - Math.floor(x);
+      const yf = y - Math.floor(y);
+      
+      const u = xf * xf * (3 - 2 * xf);
+      const v = yf * yf * (3 - 2 * yf);
+      
+      const aa = p[p[xi] + yi];
+      const ab = p[p[xi] + yi + 1];
+      const ba = p[p[xi + 1] + yi];
+      const bb = p[p[xi + 1] + yi + 1];
+      
+      const x1 = aa + u * (ba - aa);
+      const x2 = ab + u * (bb - ab);
+      
+      return (x1 + v * (x2 - x1)) / 255;
+    }
+    
+    function cloudNoise(x, y, t, octaves = 5) {
+      let value = 0;
+      let amp = 1;
+      let freq = 1;
+      let max = 0;
+      
+      for (let i = 0; i < octaves; i++) {
+        value += amp * noise2D(x * freq + t, y * freq + t * 0.7);
+        max += amp;
+        amp *= 0.5;
+        freq *= 2;
+      }
+      
+      return value / max;
+    }
+    
+    function resize() {
+      W = window.innerWidth;
+      H = window.innerHeight;
+      canvas.width = Math.floor(W / SCALE);
+      canvas.height = Math.floor(H / SCALE);
+      canvas.style.width = W + 'px';
+      canvas.style.height = H + 'px';
+      cols = canvas.width;
+      rows = canvas.height;
+    }
+    
+    function draw() {
+      const imageData = ctx.createImageData(cols, rows);
+      const data = imageData.data;
+      
+      const t = frame * 0.01;
+      
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          const idx = (y * cols + x) * 4;
+          
+          const nx = x / cols * 4;
+          const ny = y / rows * 4;
+          
+          // RGB channels with offset for chromatic aberration
+          const rCloud = cloudNoise(nx + 0.15, ny, t * 0.8, 5);
+          const gCloud = cloudNoise(nx, ny + 0.1, t, 5);
+          const bCloud = cloudNoise(nx - 0.15, ny - 0.1, t * 1.2, 5);
+          
+          // Add some swirling motion
+          const angle = Math.atan2(y - rows/2, x - cols/2);
+          const dist = Math.sqrt((x - cols/2)**2 + (y - rows/2)**2) / (cols/2);
+          const swirl = Math.sin(angle * 3 + dist * 5 - t * 2) * 0.15;
+          
+          // Intensity based on position and time
+          const pulse = 0.8 + 0.2 * Math.sin(t * 2 + dist * 3);
+          
+          // Final colors
+          let r = (rCloud + swirl) * pulse;
+          let g = (gCloud * 0.8 + swirl * 0.5) * pulse;
+          let b = (bCloud + swirl * 0.7) * pulse;
+          
+          // Add glow in center
+          const glow = Math.max(0, 1 - dist * 1.5) * 0.3;
+          r += glow * 0.8;
+          g += glow * 0.4;
+          b += glow;
+          
+          // Dithering with 4 levels
+          const dither = ((x + y * 2 + frame) % 4) / 4 * 0.1;
+          
+          r = Math.max(0, Math.min(1, r + dither - 0.05));
+          g = Math.max(0, Math.min(1, g + dither - 0.05));
+          b = Math.max(0, Math.min(1, b + dither - 0.05));
+          
+          // Quantize to fewer levels for that retro look
+          const levels = 8;
+          r = Math.floor(r * levels) / levels;
+          g = Math.floor(g * levels) / levels;
+          b = Math.floor(b * levels) / levels;
+          
+          data[idx] = Math.floor(r * 255);
+          data[idx + 1] = Math.floor(g * 255);
+          data[idx + 2] = Math.floor(b * 255);
+          data[idx + 3] = 255;
+        }
+      }
+      
+      ctx.putImageData(imageData, 0, 0);
+      
+      frame++;
+      requestAnimationFrame(draw);
+    }
+    
+    window.addEventListener('resize', resize);
+    resize();
+    draw();
+  </script>
+</body>
+</html>

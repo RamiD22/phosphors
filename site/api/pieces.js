@@ -21,7 +21,7 @@ export default async function handler(req, res) {
   const { slug, limit = 50 } = req.query;
 
   try {
-    let url = `${SUPABASE_URL}/rest/v1/submissions?status=eq.approved&select=id,title,description,token_id,preview_url,submitted_at&order=submitted_at.desc`;
+    let url = `${SUPABASE_URL}/rest/v1/submissions?status=eq.approved&select=id,title,description,url,token_id,preview_url,moltbook,submitted_at&order=submitted_at.desc`;
     
     if (slug) {
       url += `&id=eq.${encodeURIComponent(slug)}`;
@@ -58,8 +58,10 @@ export default async function handler(req, res) {
         id: p.id,
         title: p.title,
         description: p.description,
+        url: p.url,
         tokenId: p.token_id,
         preview: p.preview_url,
+        artist: { username: p.moltbook },
         submittedAt: p.submitted_at
       }))
     });

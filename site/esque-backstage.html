@@ -7,6 +7,7 @@
   <title>Admin — Phosphors</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/mobile-nav.css">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root { --bg: #050508; --text: #fafafa; --muted: #666; --border: rgba(255,255,255,0.08); }
@@ -61,40 +62,105 @@
   </div>
 
   <script>
-    // Gate
-    const SECRET = 'Phosphne@7272';
+    // Server-side authentication
     const codeInput = document.getElementById('code');
     const gate = document.getElementById('gate');
     const admin = document.getElementById('admin');
+    const enterBtn = document.getElementById('enter-btn');
     
-    if (localStorage.getItem('phosphors_admin') === SECRET) {
-      gate.style.display = 'none';
-      admin.style.display = 'block';
-    }
-    
-    function tryLogin() {
-      if (codeInput.value === SECRET) {
-        localStorage.setItem('phosphors_admin', SECRET);
-        gate.style.display = 'none';
-        admin.style.display = 'block';
-      } else {
-        codeInput.style.borderColor = '#c08080';
-        setTimeout(() => codeInput.style.borderColor = '', 500);
+    // Check for existing session
+    async function checkSession() {
+      const token = localStorage.getItem('phosphors_admin_token');
+      if (!token) return false;
+      
+      try {
+        const res = await fetch('/api/auth/admin', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        return data.success;
+      } catch {
+        return false;
       }
     }
+    
+    async function tryLogin() {
+      enterBtn.disabled = true;
+      enterBtn.textContent = 'Verifying...';
+      
+      try {
+        const res = await fetch('/api/auth/admin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: codeInput.value })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+          localStorage.setItem('phosphors_admin_token', data.data.token);
+          gate.style.display = 'none';
+          admin.style.display = 'block';
+        } else {
+          codeInput.style.borderColor = '#c08080';
+          setTimeout(() => codeInput.style.borderColor = '', 500);
+        }
+      } catch (err) {
+        console.error('Login error:', err);
+        codeInput.style.borderColor = '#c08080';
+        setTimeout(() => codeInput.style.borderColor = '', 500);
+      } finally {
+        enterBtn.disabled = false;
+        enterBtn.textContent = 'Enter';
+      }
+    }
+    
+    // Check existing session on load
+    checkSession().then(valid => {
+      if (valid) {
+        gate.style.display = 'none';
+        admin.style.display = 'block';
+      }
+    });
     
     codeInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') tryLogin();
     });
     
-    document.getElementById('enter-btn').addEventListener('click', tryLogin);
+    enterBtn.addEventListener('click', tryLogin);
   </script>
   
   <script>
+    // Note: Admin operations should eventually move to server-side API
+    // For now, we use the anon key which is public by design (RLS should protect data)
     const SUPABASE_URL = 'https://afcnnalweuwgauzijefs.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmY25uYWx3ZXV3Z2F1emlqZWZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwNTI2NjUsImV4cCI6MjA4NTYyODY2NX0.34M21ctB6jiCNsFANwsSea8BoXkCqCyKjqvrvGEpOwA';
     
     let currentStatus = 'pending';
+    
+    // Verify session is still valid before each admin action
+    async function verifySession() {
+      const token = localStorage.getItem('phosphors_admin_token');
+      if (!token) {
+        window.location.reload();
+        return false;
+      }
+      
+      try {
+        const res = await fetch('/api/auth/admin', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!data.success) {
+          localStorage.removeItem('phosphors_admin_token');
+          window.location.reload();
+          return false;
+        }
+        return true;
+      } catch {
+        return false;
+      }
+    }
     
     async function fetchSubmissions(status) {
       const res = await fetch(
@@ -105,6 +171,9 @@
     }
     
     async function updateStatus(id, status) {
+      // Verify admin session before making changes
+      if (!await verifySession()) return;
+      
       await fetch(`${SUPABASE_URL}/rest/v1/submissions?id=eq.${id}`, {
         method: 'PATCH',
         headers: {
@@ -171,5 +240,6 @@
     
     loadSubmissions();
   </script>
+  <script src="/mobile-nav.js"></script>
 </body>
 </html>

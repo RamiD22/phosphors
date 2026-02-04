@@ -1,5 +1,16 @@
 import { Coinbase, Wallet } from '@coinbase/coinbase-sdk';
 import { checkRateLimit, getClientIP, rateLimitResponse, RATE_LIMITS } from './_lib/rate-limit.js';
+import { verifyPurchasePayment } from './_lib/payment-verify.js';
+import { 
+  handleCors, 
+  isValidAddress, 
+  isValidTxHash, 
+  isValidPieceId,
+  normalizeAddress,
+  badRequest,
+  serverError,
+  auditLog
+} from './_lib/security.js';
 
 // Network configuration
 const IS_MAINNET = process.env.NETWORK_ID === 'base-mainnet';
@@ -18,24 +29,17 @@ const ARTIST_SHARE = 1.0;
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://afcnnalweuwgauzijefs.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
 
-// Validate transaction hash format
-function isValidTxHash(hash) {
-  return typeof hash === 'string' && /^0x[a-fA-F0-9]{64}$/.test(hash);
-}
-
-// Art prices in USDC
+// Art prices in USDC (numeric for verification)
 const PRICES = {
+  genesis: 0.10,
+  platform: 0.05
+};
+
+// Price display strings
+const PRICE_DISPLAY = {
   genesis: '$0.10',
   platform: '$0.05'
 };
-
-function isValidAddress(addr) {
-  return typeof addr === 'string' && /^0x[a-fA-F0-9]{40}$/.test(addr);
-}
-
-function isValidPieceId(id) {
-  return typeof id === 'string' && /^[a-zA-Z0-9_-]{1,50}$/.test(id);
-}
 
 async function supabaseQuery(path, options = {}) {
   const res = await fetch(`${SUPABASE_URL}${path}`, {
@@ -123,24 +127,26 @@ async function markAsCollected(submissionId, buyerWallet, buyerUsername) {
 }
 
 export default async function handler(req, res) {
-  // CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Payment-Signature, Authorization, X-Payment-Tx, X-Payer');
-  
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+  // CORS with whitelist
+  if (handleCors(req, res, { 
+    methods: 'GET, OPTIONS',
+    headers: 'Content-Type, Payment-Signature, Authorization, X-Payment-Tx, X-Payer, X-Payment'
+  })) {
+    return;
   }
   
   const { id, buyer } = req.query;
   
   if (!id || !isValidPieceId(id)) {
-    return res.status(400).json({ error: 'Missing or invalid piece id' });
+    return badRequest(res, 'Missing or invalid piece id');
   }
   
   if (!buyer || !isValidAddress(buyer)) {
-    return res.status(400).json({ error: 'Missing or invalid buyer address' });
+    return badRequest(res, 'Missing or invalid buyer address');
   }
+  
+  // Normalize buyer address
+  const normalizedBuyer = normalizeAddress(buyer);
   
   // Rate limiting
   const clientIP = getClientIP(req);
@@ -157,10 +163,10 @@ export default async function handler(req, res) {
   const artistUsername = submission?.moltbook || 'Unknown';
   const pieceTitle = submission?.title || id;
   
-  // Determine price
+  // Determine price (numeric for verification)
   const isGenesis = id.startsWith('genesis-');
-  const price = isGenesis ? PRICES.genesis : PRICES.platform;
-  const priceNumeric = parseFloat(price.replace('$', ''));
+  const priceNumeric = isGenesis ? PRICES.genesis : PRICES.platform;
+  const priceDisplay = isGenesis ? PRICE_DISPLAY.genesis : PRICE_DISPLAY.platform;
   
   // Check for payment TX in headers (simple payment verification)
   // Accept multiple header formats for compatibility
@@ -196,8 +202,8 @@ export default async function handler(req, res) {
       accepts: [{
         scheme: 'exact',
         network: NETWORK_CAIP2,
-        maxAmountRequired: price,
-        resource: `/api/buy?id=${encodeURIComponent(id)}&buyer=${encodeURIComponent(buyer)}`,
+        maxAmountRequired: priceDisplay,
+        resource: `/api/buy?id=${encodeURIComponent(id)}&buyer=${encodeURIComponent(normalizedBuyer)}`,
         description: `Purchase "${pieceTitle}" by ${artistUsername}`,
         mimeType: 'application/json',
         payTo: PAY_TO,
@@ -213,18 +219,45 @@ export default async function handler(req, res) {
         id,
         title: pieceTitle,
         artist: artistUsername,
-        price
+        price: priceDisplay
       },
       error: 'Payment required to purchase this artwork'
     });
   }
   
-  // Payment received - process purchase
+  // Payment received - VERIFY ON-CHAIN before processing
   try {
+    // Verify the payment transaction on-chain
+    const paymentVerification = await verifyPurchasePayment(
+      paymentTx, 
+      normalizedBuyer, 
+      priceNumeric
+    );
+    
+    if (!paymentVerification.valid) {
+      // Log failed payment attempt
+      await auditLog('PAYMENT_VERIFICATION_FAILED', {
+        txHash: paymentTx,
+        buyer: normalizedBuyer,
+        pieceId: id,
+        expectedAmount: priceNumeric,
+        error: paymentVerification.error,
+        ip: clientIP
+      });
+      
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'PAYMENT_INVALID',
+          message: paymentVerification.error || 'Payment verification failed'
+        }
+      });
+    }
+    
     // Get artist wallet and buyer username in parallel for better performance
     const [artistWallet, buyerUsername] = await Promise.all([
       getArtistWallet(artistUsername),
-      getBuyerUsername(buyer)
+      getBuyerUsername(normalizedBuyer)
     ]);
     
     let payoutTxHash = null;
@@ -274,13 +307,26 @@ export default async function handler(req, res) {
       piece_title: pieceTitle,
       buyer_username: buyerUsername,
       seller_username: artistUsername,
-      buyer_wallet: buyer.toLowerCase(),
+      buyer_wallet: normalizedBuyer,
       seller_wallet: artistWallet || PAY_TO,
-      status: 'completed'
+      status: 'completed',
+      verified_on_chain: true // Mark as verified
     });
     
     // Mark the submission as collected
-    await markAsCollected(submission?.id, buyer.toLowerCase(), buyerUsername);
+    await markAsCollected(submission?.id, normalizedBuyer, buyerUsername);
+    
+    // Log successful purchase
+    await auditLog('PURCHASE_COMPLETED', {
+      pieceId: id,
+      pieceTitle,
+      buyer: normalizedBuyer,
+      buyerUsername,
+      artist: artistUsername,
+      txHash: paymentTx,
+      amount: priceNumeric,
+      ip: clientIP
+    });
     
     // Return success
     return res.status(200).json({
@@ -294,12 +340,13 @@ export default async function handler(req, res) {
       },
       collector: {
         username: buyerUsername,
-        wallet: buyer.toLowerCase()
+        wallet: normalizedBuyer
       },
       payment: {
         txHash: paymentTx,
         amount: priceNumeric,
         currency: 'USDC',
+        verified: true,
         explorer: `${BLOCK_EXPLORER}/tx/${paymentTx}`
       },
       artistPayout: payoutTxHash ? {
@@ -307,15 +354,12 @@ export default async function handler(req, res) {
         amount: artistPayout,
         recipient: artistWallet,
         explorer: `${BLOCK_EXPLORER}/tx/${payoutTxHash}`
-      } : null,
-      buyer
+      } : null
     });
     
   } catch (error) {
     console.error('Buy error:', error);
-    return res.status(500).json({ 
-      error: 'Purchase failed',
-      details: error.message 
-    });
+    // Don't leak error details in production
+    return serverError(res, 'Purchase processing failed');
   }
 }

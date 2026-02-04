@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aureate</title>
+  <style>
+    * { margin: 0; padding: 0; }
+    body { background: #000; overflow: hidden; }
+    #canvas { position: fixed; top: 0; left: 0; image-rendering: pixelated; image-rendering: crisp-edges; }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const SCALE = 4;
+    let W, H, cols, rows, time = 0;
+    
+    // Sunset colors
+    const COLORS = [
+      [15, 5, 20], [60, 20, 50], [120, 30, 60], [200, 60, 80],
+      [255, 120, 50], [255, 180, 80], [255, 220, 150], [80, 40, 100]
+    ];
+    
+    const perm = new Uint8Array(512);
+    for (let i = 0; i < 256; i++) perm[i] = perm[i + 256] = Math.floor(Math.random() * 256);
+    function fade(t) { return t * t * t * (t * (t * 6 - 15) + 10); }
+    function lerp(a, b, t) { return a + t * (b - a); }
+    function grad(hash, x, y) { const h = hash & 3; return ((h & 1) ? (h < 2 ? x : y) : -(h < 2 ? x : y)) + ((h & 2) ? (h < 2 ? y : x) : -(h < 2 ? y : x)); }
+    function noise(x, y) { const X = Math.floor(x) & 255, Y = Math.floor(y) & 255; x -= Math.floor(x); y -= Math.floor(y); const u = fade(x), v = fade(y), A = perm[X] + Y, B = perm[X + 1] + Y; return lerp(lerp(grad(perm[A], x, y), grad(perm[B], x - 1, y), u), lerp(grad(perm[A + 1], x, y - 1), grad(perm[B + 1], x - 1, y - 1), u), v); }
+    function fbm(x, y, o) { let v = 0, a = 0.5, f = 1; for (let i = 0; i < o; i++) { v += a * noise(x * f, y * f); a *= 0.5; f *= 2; } return v; }
+    const BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
+    
+    function resize() { W = window.innerWidth; H = window.innerHeight; cols = Math.floor(W / SCALE); rows = Math.floor(H / SCALE); canvas.width = cols; canvas.height = rows; canvas.style.width = W + 'px'; canvas.style.height = H + 'px'; }
+    
+    function draw() {
+      const data = ctx.createImageData(cols, rows), d = data.data, t = time * 0.008;
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          const idx = (y * cols + x) * 4;
+          const nx = x / cols, ny = y / rows;
+          
+          // VERTICAL BARS/COLUMNS
+          const bar1 = Math.sin(nx * 30 + t * 2);
+          const bar2 = Math.sin(nx * 50 - t * 3 + Math.sin(ny * 5) * 2);
+          const bar3 = Math.sin(nx * 20 + t + ny * 8);
+          const gradient = 1 - ny; // Top to bottom gradient
+          const cloud = fbm(nx * 2 + t * 0.2, ny * 3, 3);
+          
+          let value = (bar1 + bar2 * 0.5 + bar3 * 0.3 + cloud * 0.5) / 2.3;
+          value = (value + 1) / 2 * (0.5 + gradient * 0.5);
+          
+          const dithered = value > BAYER[y % 4][x % 4] / 16;
+          const colorWave = ny * 3 + bar1 * 0.3 + t * 0.2;
+          let colorIdx = Math.floor(Math.abs(colorWave * 2) % COLORS.length);
+          if (!dithered) colorIdx = Math.max(0, colorIdx - 3);
+          
+          const c = COLORS[colorIdx];
+          d[idx] = c[0]; d[idx + 1] = c[1]; d[idx + 2] = c[2]; d[idx + 3] = 255;
+        }
+      }
+      ctx.putImageData(data, 0, 0);
+      time++;
+      requestAnimationFrame(draw);
+    }
+    window.addEventListener('resize', resize);
+    resize(); draw();
+  </script>
+</body>
+</html>

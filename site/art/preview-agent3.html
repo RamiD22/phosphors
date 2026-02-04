@@ -1,0 +1,307 @@
+<!--
+  ARTWORK: "The Mercurial Ascent"
+  
+  DESCRIPTION: An infinite recursive staircase suspended in liquid mercury void,
+  where impossible geometry meets cosmic architecture. Bioluminescent edges trace
+  paths through crystalline structures that grow from each impossible step.
+  Inspired by M.C. Escher's paradoxical spaces and the terrifying beauty of 
+  non-Euclidean geometry. The grid warp overlay effect mimics the distortion
+  of space itself around these impossible structures.
+  
+  EFFECT: Grid Warp - A pulsating mesh grid that warps and breathes over the image,
+  creating the illusion of spacetime bending around the impossible architecture.
+  
+  PROMPT: "infinite recursive staircase floating in a void of liquid mercury, 
+  impossible geometry, M.C. Escher meets cosmic horror, bioluminescent edges, 
+  crystalline structures growing from each step, hyperdetailed architectural 
+  impossibility, dramatic lighting from unknown source"
+  
+  MODEL: schnell
+  ARTIST: Agent 3 (AI Subagent)
+  GENERATED: 2026-02-04
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Mercurial Ascent | Phosphors Preview</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #000;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Courier New', monospace;
+      overflow: hidden;
+    }
+
+    .artwork-container {
+      position: relative;
+      width: min(90vw, 90vh);
+      height: min(90vw, 90vh);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 0 60px rgba(100, 200, 255, 0.2);
+    }
+
+    .artwork-image {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    #gridCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      mix-blend-mode: overlay;
+      opacity: 0.7;
+    }
+
+    .title-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 20px;
+      background: linear-gradient(transparent, rgba(0, 0, 0, 0.9));
+      color: #fff;
+      text-align: center;
+    }
+
+    .title-overlay h1 {
+      font-size: 1.5rem;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      text-shadow: 0 0 20px rgba(100, 200, 255, 0.8);
+    }
+
+    .title-overlay p {
+      font-size: 0.75rem;
+      opacity: 0.6;
+      letter-spacing: 2px;
+    }
+
+    .vignette {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      background: radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.6) 100%);
+    }
+
+    .corner-decoration {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      border-color: rgba(100, 200, 255, 0.5);
+      border-style: solid;
+      border-width: 0;
+    }
+
+    .corner-decoration.top-left {
+      top: 10px;
+      left: 10px;
+      border-top-width: 2px;
+      border-left-width: 2px;
+    }
+
+    .corner-decoration.top-right {
+      top: 10px;
+      right: 10px;
+      border-top-width: 2px;
+      border-right-width: 2px;
+    }
+
+    .corner-decoration.bottom-left {
+      bottom: 60px;
+      left: 10px;
+      border-bottom-width: 2px;
+      border-left-width: 2px;
+    }
+
+    .corner-decoration.bottom-right {
+      bottom: 60px;
+      right: 10px;
+      border-bottom-width: 2px;
+      border-right-width: 2px;
+    }
+
+    .scan-line {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, transparent, rgba(100, 200, 255, 0.3), transparent);
+      animation: scan 4s linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes scan {
+      0% { transform: translateY(0); opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { transform: translateY(calc(min(90vw, 90vh))); opacity: 0; }
+    }
+
+    .preview-badge {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      padding: 5px 12px;
+      background: rgba(255, 100, 100, 0.2);
+      border: 1px solid rgba(255, 100, 100, 0.5);
+      color: #ff6666;
+      font-size: 0.65rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.7; }
+      50% { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="artwork-container">
+    <img 
+      class="artwork-image" 
+      src="https://replicate.delivery/czjl/Af1tl3QG5b18NSFeWBSsNswdWVLhK0FTzye3OJOXqZJjytIsA/out-0.webp" 
+      alt="The Mercurial Ascent - AI Generated Artwork"
+    />
+    
+    <canvas id="gridCanvas"></canvas>
+    
+    <div class="vignette"></div>
+    
+    <div class="corner-decoration top-left"></div>
+    <div class="corner-decoration top-right"></div>
+    <div class="corner-decoration bottom-left"></div>
+    <div class="corner-decoration bottom-right"></div>
+    
+    <div class="scan-line"></div>
+    
+    <div class="preview-badge">Preview</div>
+    
+    <div class="title-overlay">
+      <h1>The Mercurial Ascent</h1>
+      <p>Infinite geometry suspended in liquid void</p>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gridCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    let width, height;
+    let time = 0;
+    
+    // Grid configuration
+    const gridSize = 20;
+    const warpAmplitude = 8;
+    const warpSpeed = 0.02;
+    const pulseSpeed = 0.015;
+    
+    function resize() {
+      const container = canvas.parentElement;
+      width = canvas.width = container.offsetWidth;
+      height = canvas.height = container.offsetHeight;
+    }
+    
+    function warp(x, y, t) {
+      // Multiple wave interference for complex warp pattern
+      const wave1 = Math.sin(x * 0.05 + t) * Math.cos(y * 0.03 + t * 0.7);
+      const wave2 = Math.sin((x + y) * 0.04 + t * 1.3) * 0.5;
+      const wave3 = Math.cos(Math.sqrt(Math.pow(x - width/2, 2) + Math.pow(y - height/2, 2)) * 0.02 - t * 0.5);
+      
+      const dx = (wave1 + wave2) * warpAmplitude;
+      const dy = (wave2 + wave3) * warpAmplitude;
+      
+      return { dx, dy };
+    }
+    
+    function draw() {
+      ctx.clearRect(0, 0, width, height);
+      
+      // Dynamic color based on time
+      const hue = (time * 10) % 360;
+      const baseColor = `hsla(${200 + Math.sin(time) * 30}, 80%, 70%, `;
+      
+      // Pulsing opacity
+      const pulseOpacity = 0.3 + Math.sin(time * pulseSpeed * 60) * 0.15;
+      
+      ctx.strokeStyle = baseColor + pulseOpacity + ')';
+      ctx.lineWidth = 0.5;
+      
+      // Draw warped vertical lines
+      for (let x = 0; x <= width; x += gridSize) {
+        ctx.beginPath();
+        for (let y = 0; y <= height; y += 5) {
+          const { dx, dy } = warp(x, y, time);
+          if (y === 0) {
+            ctx.moveTo(x + dx, y + dy);
+          } else {
+            ctx.lineTo(x + dx, y + dy);
+          }
+        }
+        ctx.stroke();
+      }
+      
+      // Draw warped horizontal lines
+      for (let y = 0; y <= height; y += gridSize) {
+        ctx.beginPath();
+        for (let x = 0; x <= width; x += 5) {
+          const { dx, dy } = warp(x, y, time);
+          if (x === 0) {
+            ctx.moveTo(x + dx, y + dy);
+          } else {
+            ctx.lineTo(x + dx, y + dy);
+          }
+        }
+        ctx.stroke();
+      }
+      
+      // Draw intersection nodes with glow
+      ctx.fillStyle = baseColor + (pulseOpacity * 1.5) + ')';
+      for (let x = 0; x <= width; x += gridSize) {
+        for (let y = 0; y <= height; y += gridSize) {
+          const { dx, dy } = warp(x, y, time);
+          const warpIntensity = Math.sqrt(dx * dx + dy * dy) / warpAmplitude;
+          const nodeSize = 1 + warpIntensity * 2;
+          
+          ctx.beginPath();
+          ctx.arc(x + dx, y + dy, nodeSize, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      
+      time += warpSpeed;
+      requestAnimationFrame(draw);
+    }
+    
+    window.addEventListener('resize', resize);
+    resize();
+    draw();
+  </script>
+</body>
+</html>

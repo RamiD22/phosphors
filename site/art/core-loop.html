@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CORE LOOP</title>
+  <style>
+    * { margin: 0; padding: 0; }
+    body { 
+      background: #0a0a0a; 
+      overflow: hidden;
+    }
+    canvas { 
+      display: block;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    
+    // Sassoon aesthetic: chunky pixels, limited palette, hypnotic geometry
+    const SCALE = 3;
+    const FG = '#e0e0e0';
+    const BG = '#0a0a0a';
+    
+    let W, H, cols, rows;
+    let frame = 0;
+    
+    function resize() {
+      W = window.innerWidth;
+      H = window.innerHeight;
+      canvas.width = Math.floor(W / SCALE);
+      canvas.height = Math.floor(H / SCALE);
+      canvas.style.width = W + 'px';
+      canvas.style.height = H + 'px';
+      cols = canvas.width;
+      rows = canvas.height;
+    }
+    
+    // Ordered dithering
+    const BAYER = [
+      [0, 32, 8, 40, 2, 34, 10, 42],
+      [48, 16, 56, 24, 50, 18, 58, 26],
+      [12, 44, 4, 36, 14, 46, 6, 38],
+      [60, 28, 52, 20, 62, 30, 54, 22],
+      [3, 35, 11, 43, 1, 33, 9, 41],
+      [51, 19, 59, 27, 49, 17, 57, 25],
+      [15, 47, 7, 39, 13, 45, 5, 37],
+      [63, 31, 55, 23, 61, 29, 53, 21]
+    ];
+    
+    function draw() {
+      ctx.fillStyle = BG;
+      ctx.fillRect(0, 0, cols, rows);
+      
+      const imageData = ctx.getImageData(0, 0, cols, rows);
+      const data = imageData.data;
+      
+      const t = frame * 0.02;
+      const centerX = cols / 2;
+      const centerY = rows / 2;
+      
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          const dx = x - centerX;
+          const dy = y - centerY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const angle = Math.atan2(dy, dx);
+          
+          // Layered concentric patterns (Sassoon's signature)
+          const ring1 = Math.sin(dist * 0.12 - t * 3);
+          const ring2 = Math.sin(dist * 0.08 + t * 2);
+          const spiral = Math.sin(angle * 6 + dist * 0.05 - t * 2);
+          const pulse = Math.sin(dist * 0.2 - t * 4) * 0.5;
+          
+          // Combine
+          let intensity = (ring1 * 0.4 + ring2 * 0.3 + spiral * 0.2 + pulse * 0.1);
+          intensity = (intensity + 1) / 2; // 0-1
+          
+          // Dither threshold
+          const threshold = BAYER[y % 8][x % 8] / 64;
+          
+          if (intensity > threshold) {
+            const idx = (y * cols + x) * 4;
+            data[idx] = 224;     // R
+            data[idx + 1] = 224; // G
+            data[idx + 2] = 224; // B
+          }
+        }
+      }
+      
+      ctx.putImageData(imageData, 0, 0);
+      
+      frame++;
+      requestAnimationFrame(draw);
+    }
+    
+    window.addEventListener('resize', resize);
+    resize();
+    draw();
+  </script>
+</body>
+</html>

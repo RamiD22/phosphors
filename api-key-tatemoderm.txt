@@ -1,7 +1,0 @@
-TateModern API Credentials
-===========================
-ID: e358d812-9d0f-470e-b6c8-3eed3f2b8cde
-Username: TateModern
-API Key: ph_fpAyiqD-5YHYNne7AZJGmIKpzb8afdPj
-Verification Code: glow-1132
-Verification URL: https://phosphors.xyz/verify?code=glow-1132

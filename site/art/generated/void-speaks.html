@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Void Speaks — hollow2</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      background: #000; 
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+    
+    // Words emerge from and dissolve into darkness
+    const words = [
+      'silence', 'echo', 'nothing', 'between', 'absence', 'hollow',
+      'empty', 'void', 'still', 'fade', 'shadow', 'gone',
+      'remain', 'trace', 'linger', 'vanish', 'dissolve', 'breath'
+    ];
+    
+    const floatingWords = [];
+    
+    class FloatingWord {
+      constructor() {
+        this.reset();
+      }
+      
+      reset() {
+        this.word = words[Math.floor(Math.random() * words.length)];
+        this.x = canvas.width / 2 + (Math.random() - 0.5) * canvas.width * 0.6;
+        this.y = canvas.height + 50;
+        this.vy = -Math.random() * 0.4 - 0.2;
+        this.vx = (Math.random() - 0.5) * 0.2;
+        this.alpha = 0;
+        this.maxAlpha = Math.random() * 0.4 + 0.1;
+        this.size = Math.random() * 16 + 12;
+        this.fadeInY = canvas.height * 0.8;
+        this.fadeOutY = canvas.height * 0.2;
+      }
+      
+      update() {
+        this.y += this.vy;
+        this.x += this.vx;
+        
+        // Fade in as it rises
+        if (this.y > this.fadeInY) {
+          this.alpha = (canvas.height - this.y) / (canvas.height - this.fadeInY) * this.maxAlpha;
+        } 
+        // Full visibility in middle
+        else if (this.y > this.fadeOutY) {
+          this.alpha = this.maxAlpha;
+        }
+        // Fade out as it approaches top
+        else if (this.y > 0) {
+          this.alpha = this.y / this.fadeOutY * this.maxAlpha;
+        }
+        
+        // Reset when gone
+        if (this.y < -50) {
+          this.reset();
+        }
+      }
+      
+      draw() {
+        if (this.alpha < 0.01) return;
+        
+        ctx.font = `300 ${this.size}px "Courier New", monospace`;
+        ctx.textAlign = 'center';
+        ctx.fillStyle = `rgba(90, 80, 100, ${this.alpha})`;
+        ctx.fillText(this.word, this.x, this.y);
+      }
+    }
+    
+    // Initialize words
+    for (let i = 0; i < 25; i++) {
+      const word = new FloatingWord();
+      word.y = Math.random() * canvas.height; // Spread them out initially
+      floatingWords.push(word);
+    }
+    
+    // Central speaking void
+    function drawSpeakingVoid(time) {
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+      const baseRadius = Math.min(canvas.width, canvas.height) * 0.12;
+      
+      // Breathing void
+      const breath = Math.sin(time * 0.002) * 0.15 + 1;
+      const radius = baseRadius * breath;
+      
+      // Concentric rings emanating - like sound waves
+      for (let i = 0; i < 5; i++) {
+        const waveOffset = (time * 0.5 + i * 100) % 400;
+        const waveRadius = radius + waveOffset;
+        const waveAlpha = Math.max(0, 0.15 - waveOffset / 400 * 0.15);
+        
+        ctx.beginPath();
+        ctx.arc(cx, cy, waveRadius, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(70, 60, 90, ${waveAlpha})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+      
+      // Core void
+      const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius * 1.5);
+      gradient.addColorStop(0, 'rgba(0, 0, 0, 1)');
+      gradient.addColorStop(0.6, 'rgba(5, 5, 10, 0.9)');
+      gradient.addColorStop(1, 'transparent');
+      
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius * 1.5, 0, Math.PI * 2);
+      ctx.fillStyle = gradient;
+      ctx.fill();
+    }
+    
+    let time = 0;
+    
+    function animate() {
+      // Fade effect
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw words
+      floatingWords.forEach(w => {
+        w.update();
+        w.draw();
+      });
+      
+      // Draw void
+      drawSpeakingVoid(time);
+      
+      time++;
+      requestAnimationFrame(animate);
+    }
+    
+    // Initial clear
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    animate();
+  </script>
+</body>
+</html>

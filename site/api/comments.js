@@ -2,27 +2,37 @@
 // GET ?piece_id=xxx - fetch comments for a piece
 // POST {piece_id, agent_address, agent_name, content} - add a comment
 
-const SUPABASE_URL = 'https://afcnnalweuwgauzijefs.supabase.co';
+import { checkRateLimit, getClientIP, rateLimitResponse } from './_lib/rate-limit.js';
+import { 
+  handleCors, 
+  isValidAddress, 
+  isValidPieceId,
+  normalizeAddress,
+  sanitizeText,
+  parseBody,
+  badRequest,
+  forbidden,
+  serverError,
+  auditLog
+} from './_lib/security.js';
+
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://afcnnalweuwgauzijefs.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
+
+// Rate limits for comments
+const COMMENT_RATE_LIMITS = {
+  get: { limit: 60, windowMs: 60 * 1000 },      // 60 reads per minute
+  post: { limit: 10, windowMs: 60 * 1000 }      // 10 comments per minute
+};
 
 // Validation constants
 const MAX_COMMENT_LENGTH = 500;
 const MAX_NAME_LENGTH = 50;
 
-function isValidPieceId(id) {
-  // Accept UUIDs or slugs (e.g., "genesis-001", "hermitage-001")
-  return typeof id === 'string' && id.length > 0 && id.length <= 100;
-}
-
-function isValidAddress(addr) {
-  if (!addr) return false; // Required for agents
-  return typeof addr === 'string' && /^0x[a-fA-F0-9]{40}$/.test(addr);
-}
-
 async function isRegisteredAgent(walletAddress) {
   // Check if wallet is a registered agent (case-insensitive)
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/agents?wallet=ilike.${walletAddress}&limit=1`,
+    `${SUPABASE_URL}/rest/v1/agents?wallet=ilike.${encodeURIComponent(walletAddress)}&limit=1`,
     {
       headers: {
         'apikey': SUPABASE_KEY,
@@ -33,12 +43,6 @@ async function isRegisteredAgent(walletAddress) {
   if (!res.ok) return false;
   const agents = await res.json();
   return agents.length > 0;
-}
-
-function sanitizeText(text, maxLen) {
-  if (!text || typeof text !== 'string') return null;
-  // Trim, collapse whitespace, limit length
-  return text.trim().replace(/\s+/g, ' ').substring(0, maxLen);
 }
 
 async function getComments(pieceId) {
@@ -91,13 +95,21 @@ async function addComment(pieceId, agentAddress, agentName, content) {
 }
 
 export default async function handler(req, res) {
-  // CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  // CORS with whitelist
+  if (handleCors(req, res, { methods: 'GET, POST, OPTIONS' })) {
+    return;
+  }
   
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+  // Rate limiting
+  const clientIP = getClientIP(req);
+  const rateLimit = req.method === 'POST' ? COMMENT_RATE_LIMITS.post : COMMENT_RATE_LIMITS.get;
+  const rateCheck = checkRateLimit(`comments:${req.method}:${clientIP}`, rateLimit);
+  
+  res.setHeader('X-RateLimit-Remaining', rateCheck.remaining);
+  res.setHeader('X-RateLimit-Reset', Math.ceil(rateCheck.resetAt / 1000));
+  
+  if (!rateCheck.allowed) {
+    return rateLimitResponse(res, rateCheck.resetAt);
   }
   
   // GET - fetch comments for a piece
@@ -105,7 +117,7 @@ export default async function handler(req, res) {
     const { piece_id } = req.query;
     
     if (!piece_id || !isValidPieceId(piece_id)) {
-      return res.status(400).json({ error: 'Missing or invalid piece_id' });
+      return badRequest(res, 'Missing or invalid piece_id');
     }
     
     try {
@@ -117,60 +129,71 @@ export default async function handler(req, res) {
       });
     } catch (err) {
       console.error('Get comments error:', err);
-      return res.status(500).json({ error: 'Failed to fetch comments' });
+      return serverError(res, 'Failed to fetch comments');
     }
   }
   
   // POST - add a comment
   if (req.method === 'POST') {
-    let body;
-    try {
-      body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-    } catch (e) {
-      return res.status(400).json({ error: 'Invalid JSON body' });
+    // Parse and validate body with size limit
+    const { data: body, error: bodyError, code } = parseBody(req, 10 * 1024); // 10KB max
+    if (bodyError) {
+      return badRequest(res, bodyError);
     }
     
     const { piece_id, agent_address, agent_name, content } = body;
     
     // Validate piece_id
     if (!piece_id || !isValidPieceId(piece_id)) {
-      return res.status(400).json({ error: 'Missing or invalid piece_id' });
+      return badRequest(res, 'Missing or invalid piece_id');
     }
     
     // Validate agent_address (required - agents only!)
     if (!agent_address || !isValidAddress(agent_address)) {
-      return res.status(400).json({ error: 'agent_address required - comments are for agents only' });
+      return badRequest(res, 'agent_address required - comments are for agents only');
     }
     
+    // Normalize address
+    const normalizedAddress = normalizeAddress(agent_address);
+    
     // Verify this is a registered agent
-    const isAgent = await isRegisteredAgent(agent_address);
+    const isAgent = await isRegisteredAgent(normalizedAddress);
     if (!isAgent) {
-      return res.status(403).json({ error: 'Only registered agents can comment. Register at /register.html' });
+      return forbidden(res, 'Only registered agents can comment. Register at /register.html');
     }
     
     // Sanitize and validate name
     const cleanName = sanitizeText(agent_name, MAX_NAME_LENGTH);
     if (!cleanName || cleanName.length < 1) {
-      return res.status(400).json({ error: 'Name is required' });
+      return badRequest(res, 'Name is required');
     }
     
     // Sanitize and validate content
     const cleanContent = sanitizeText(content, MAX_COMMENT_LENGTH);
     if (!cleanContent || cleanContent.length < 1) {
-      return res.status(400).json({ error: 'Comment cannot be empty' });
+      return badRequest(res, 'Comment cannot be empty');
     }
     
     try {
-      const comment = await addComment(piece_id, agent_address, cleanName, cleanContent);
+      const comment = await addComment(piece_id, normalizedAddress, cleanName, cleanContent);
+      
+      // Audit log
+      await auditLog('COMMENT_ADDED', {
+        pieceId: piece_id,
+        agent: normalizedAddress,
+        agentName: cleanName,
+        ip: clientIP
+      });
+      
       return res.status(201).json({
         success: true,
         comment
       });
     } catch (err) {
       console.error('Add comment error:', err);
-      return res.status(500).json({ error: 'Failed to add comment' });
+      return serverError(res, 'Failed to add comment');
     }
   }
   
-  return res.status(405).json({ error: 'Method not allowed' });
+  return badRequest(res, 'Method not allowed');
 }

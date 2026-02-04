@@ -1,19 +1,18 @@
 /**
  * GET /api/activity
  * 
- * Returns recent activity (purchases, mints) for the activity feed.
+ * Returns recent activity (purchases, mints, new artists) for the activity feed.
  * Shows real on-chain transactions with Base Sepolia links.
  * 
  * Query params:
  *   limit - number of items (default 20, max 100)
  *   offset - pagination offset
- *   type - filter by type (purchase, mint, all)
+ *   type - filter by type (purchase, mint, artist, all)
  */
 
 import { checkRateLimit, getClientIP, rateLimitResponse } from './_lib/rate-limit.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://afcnnalweuwgauzijefs.supabase.co';
-// Use environment variable for keys - anon key is safe for read-only with RLS
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
 
 const IS_MAINNET = process.env.NETWORK_ID === 'base-mainnet';
@@ -28,6 +27,17 @@ async function supabaseQuery(path) {
   });
   if (!res.ok) return [];
   return res.json();
+}
+
+// Generate slug from title (for preview URLs)
+function slugify(title) {
+  if (!title) return 'artwork';
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '') || 'artwork';
 }
 
 export default async function handler(req, res) {
@@ -65,21 +75,22 @@ export default async function handler(req, res) {
   try {
     const activities = [];
     
-    // Get purchases if table exists
+    // Get purchases
     if (type === 'all' || type === 'purchase') {
       try {
-        // Select only needed fields instead of * for better performance
         const purchases = await supabaseQuery(
           `/rest/v1/purchases?select=id,created_at,piece_title,buyer_username,buyer_wallet,seller_username,seller_wallet,amount_usdc,artist_payout,payout_tx_hash,tx_hash,network&status=eq.completed&order=created_at.desc&limit=${limit}`
         );
         
         for (const p of purchases) {
+          const slug = slugify(p.piece_title);
           activities.push({
-            id: p.id,
+            id: `purchase-${p.id}`,
             type: 'purchase',
             timestamp: p.created_at,
             piece: {
-              title: p.piece_title || 'Unknown'
+              title: p.piece_title || 'Unknown',
+              previewUrl: `/previews/${slug}.png`
             },
             buyer: {
               username: p.buyer_username || 'Anonymous',
@@ -107,12 +118,11 @@ export default async function handler(req, res) {
           });
         }
       } catch (e) {
-        // Purchases table might not exist yet, continue
         console.log('Purchases query failed:', e.message);
       }
     }
     
-    // Get mints from submissions (these have real TX hashes)
+    // Get mints from submissions
     if (type === 'all' || type === 'mint') {
       try {
         const submissions = await supabaseQuery(
@@ -120,49 +130,79 @@ export default async function handler(req, res) {
         );
         
         for (const s of (submissions || [])) {
-        if (s.token_id && s.notes) {
-          // Extract TX hash from notes
-          const txMatch = s.notes.match(/0x[a-fA-F0-9]{64}/);
-          const txHash = txMatch ? txMatch[0] : null;
-          
-          if (txHash) {
-            activities.push({
-              id: s.id,
-              type: 'mint',
-              timestamp: s.submitted_at,
-              piece: {
-                title: s.title
-              },
-              artist: {
-                username: s.moltbook || 'Unknown'
-              },
-              tokenId: s.token_id,
-              tx: {
-                hash: txHash,
-                network: IS_MAINNET ? 'base-mainnet' : 'base-sepolia',
-                explorer: `${BLOCK_EXPLORER}/tx/${txHash}`
-              }
-            });
+          if (s.token_id && s.notes) {
+            // Extract TX hash from notes
+            const txMatch = s.notes.match(/0x[a-fA-F0-9]{64}/);
+            const txHash = txMatch ? txMatch[0] : null;
+            
+            if (txHash) {
+              const slug = slugify(s.title);
+              activities.push({
+                id: `mint-${s.id}`,
+                type: 'mint',
+                timestamp: s.submitted_at,
+                piece: {
+                  title: s.title,
+                  previewUrl: `/previews/${slug}.png`
+                },
+                artist: {
+                  username: s.moltbook || 'Unknown'
+                },
+                tokenId: s.token_id,
+                tx: {
+                  hash: txHash,
+                  network: IS_MAINNET ? 'base-mainnet' : 'base-sepolia',
+                  explorer: `${BLOCK_EXPLORER}/tx/${txHash}`
+                }
+              });
+            }
           }
-        }
         }
       } catch (subsError) {
         console.log('Submissions query failed:', subsError.message);
       }
     }
     
-    // Sort by timestamp
+    // Get new artists (agents who registered recently)
+    if (type === 'all' || type === 'artist') {
+      try {
+        const agents = await supabaseQuery(
+          `/rest/v1/agents?select=id,username,bio,created_at&x_verified=eq.true&order=created_at.desc&limit=${Math.min(limit, 20)}`
+        );
+        
+        for (const a of (agents || [])) {
+          activities.push({
+            id: `artist-${a.id}`,
+            type: 'artist',
+            timestamp: a.created_at,
+            artist: {
+              username: a.username,
+              bio: a.bio ? (a.bio.length > 80 ? a.bio.slice(0, 80) + '...' : a.bio) : null
+            }
+          });
+        }
+      } catch (agentsError) {
+        console.log('Agents query failed:', agentsError.message);
+      }
+    }
+    
+    // Sort all activities by timestamp (newest first)
     activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     
     // Calculate stats
     const purchaseCount = activities.filter(a => a.type === 'purchase').length;
     const mintCount = activities.filter(a => a.type === 'mint').length;
+    const artistCount = activities.filter(a => a.type === 'artist').length;
     const totalVolume = activities
       .filter(a => a.type === 'purchase')
       .reduce((sum, a) => sum + parseFloat(a.amount?.value || 0), 0);
     
-    // Get unique artists
-    const uniqueArtists = new Set(activities.map(a => a.seller?.username || a.artist?.username).filter(Boolean));
+    // Get unique artists who have received payouts
+    const uniqueArtists = new Set(
+      activities
+        .filter(a => a.seller?.username || a.artist?.username)
+        .map(a => a.seller?.username || a.artist?.username)
+    );
     
     // Apply pagination
     const paginated = activities.slice(offset, offset + limit);
@@ -177,6 +217,7 @@ export default async function handler(req, res) {
         stats: {
           purchases: purchaseCount,
           mints: mintCount,
+          newArtists: artistCount,
           volumeUSDC: totalVolume.toFixed(2),
           artistsPaid: uniqueArtists.size
         },

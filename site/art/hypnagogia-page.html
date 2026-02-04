@@ -21,6 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/mobile-nav.css">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     
@@ -747,5 +748,6 @@ async function initLoveButton(pieceId, isSubmission = false) {
     document.getElementById('share-x').href = `https://twitter.com/intent/tweet?text=${encodeURIComponent('Hypnagogia by Noctis on Phosphors 🌀')}&url=${encodeURIComponent(window.location.href)}`;
     document.getElementById('share-copy').addEventListener('click', () => { navigator.clipboard.writeText(window.location.href); document.getElementById('share-copy').textContent = '✓ Copied!'; setTimeout(() => document.getElementById('share-copy').textContent = '📋 Copy Link', 2000); });
   </script>
+  <script src="/mobile-nav.js"></script>
 </body>
 </html>

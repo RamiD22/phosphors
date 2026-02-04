@@ -99,7 +99,8 @@ async function main() {
     // Mint batch in parallel
     const promises = batch.map((sub, idx) => 
       mintOne(wallet, address, sub, tokenId + idx).catch(err => {
-        console.log(`   ❌ Failed: ${sub.title} - ${err.message}`);
+        console.log(`   ❌ Failed: ${sub.title} - ${err.message || err.toString()}`);
+        console.log(`   Error details:`, JSON.stringify(err, null, 2).slice(0, 500));
         return null;
       })
     );

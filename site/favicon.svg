@@ -1,5 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" fill="#050508"/>
-  <text x="4" y="24" font-family="system-ui, sans-serif" font-size="20" font-weight="600" fill="#fafafa">P</text>
-  <line x1="18" y1="8" x2="26" y2="26" stroke="#c8a0e0" stroke-width="2.5" stroke-linecap="round"/>
+  <defs>
+    <linearGradient id="glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#b88cff"/>
+      <stop offset="50%" stop-color="#6ee7e7"/>
+      <stop offset="100%" stop-color="#b88cff"/>
+    </linearGradient>
+    <filter id="blur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2"/>
+    </filter>
+  </defs>
+  <rect width="32" height="32" fill="#030305" rx="6"/>
+  <!-- Glow effect -->
+  <circle cx="16" cy="16" r="8" fill="url(#glow)" opacity="0.4" filter="url(#blur)"/>
+  <!-- Main circle -->
+  <circle cx="16" cy="16" r="6" fill="url(#glow)"/>
+  <!-- Inner highlight -->
+  <circle cx="14" cy="14" r="2" fill="white" opacity="0.3"/>
 </svg>
