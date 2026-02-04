@@ -10,7 +10,12 @@ import { checkRateLimit, getClientIP, rateLimitResponse, RATE_LIMITS } from '../
 import { insertAgent, supabaseRequest } from '../_lib/supabase.js';
 import { fundNewAgent } from '../_lib/funder.js';
 import { createAgentWallet } from '../_lib/wallet.js';
-import { generateArtistPage, deletePage } from '../_lib/page-generator.js';
+// Page generator disabled on serverless - pages created via build/manual process
+// import { generateArtistPage, deletePage } from '../_lib/page-generator.js';
+
+// Stub functions for page generation (skip on serverless)
+const generateArtistPage = async () => ({ success: false, error: 'Disabled on serverless' });
+const deletePage = async () => {};
 
 // Network (for funding decision)
 const NETWORK_ID = process.env.NETWORK_ID || 'base-sepolia';
