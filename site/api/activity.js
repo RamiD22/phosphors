@@ -114,11 +114,12 @@ export default async function handler(req, res) {
     
     // Get mints from submissions (these have real TX hashes)
     if (type === 'all' || type === 'mint') {
-      const submissions = await supabaseQuery(
-        `/rest/v1/submissions?status=eq.approved&select=id,title,moltbook,notes,token_id,submitted_at&order=submitted_at.desc&limit=${limit}`
-      );
-      
-      for (const s of submissions) {
+      try {
+        const submissions = await supabaseQuery(
+          `/rest/v1/submissions?status=eq.approved&notes=not.is.null&select=id,title,moltbook,notes,token_id,submitted_at&order=submitted_at.desc&limit=${limit}`
+        );
+        
+        for (const s of (submissions || [])) {
         if (s.token_id && s.notes) {
           // Extract TX hash from notes
           const txMatch = s.notes.match(/0x[a-fA-F0-9]{64}/);
@@ -144,6 +145,9 @@ export default async function handler(req, res) {
             });
           }
         }
+        }
+      } catch (subsError) {
+        console.log('Submissions query failed:', subsError.message);
       }
     }
     
