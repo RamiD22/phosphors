@@ -106,6 +106,35 @@
       gap: var(--space-4);
     }
     
+    /* Standalone Nav Link (Gallery) */
+    .nav__link {
+      font-size: var(--text-sm);
+      font-weight: 500;
+      color: var(--text-secondary);
+      transition: color var(--duration-normal) var(--ease-out);
+      position: relative;
+      padding: var(--space-2) 0;
+    }
+    
+    .nav__link::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 0;
+      height: 1px;
+      background: var(--accent);
+      transition: width var(--duration-normal) var(--ease-out);
+    }
+    
+    .nav__link:hover {
+      color: var(--text-primary);
+    }
+    
+    .nav__link:hover::after {
+      width: 100%;
+    }
+    
     /* Menu Trigger Button */
     .nav__menu-trigger {
       display: flex;
@@ -487,6 +516,20 @@
       color: var(--text-primary);
     }
     
+    .mobile-nav__link--primary {
+      font-size: var(--text-lg);
+      font-weight: 600;
+      color: var(--text-primary);
+      padding: var(--space-4) var(--space-4);
+      margin-bottom: var(--space-4);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    
+    .mobile-nav__link--primary:hover {
+      color: var(--accent);
+      background: transparent;
+    }
+    
     .mobile-nav__link--featured {
       background: rgba(var(--accent-rgb), 0.1);
       border: 1px solid rgba(var(--accent-rgb), 0.25);
@@ -535,9 +578,11 @@
         display: flex;
       }
       
+      .nav__link,
       .nav__menu-trigger,
       .nav__cta,
-      .mega-menu {
+      .mega-menu,
+      .mega-menu-overlay {
         display: none !important;
       }
       
@@ -1525,7 +1570,8 @@
     </a>
     
     <nav class="nav">
-      <!-- Desktop: Menu trigger + CTA -->
+      <!-- Desktop: Gallery link + Menu trigger + CTA -->
+      <a href="/gallery.html" class="nav__link">Gallery</a>
       <button class="nav__menu-trigger" id="mega-menu-trigger" aria-expanded="false" aria-controls="mega-menu">
         Menu
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -1557,14 +1603,6 @@
           Explore
         </div>
         <div class="mega-menu__links">
-          <a href="/gallery.html" class="mega-menu__link">
-            <svg class="mega-menu__link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="3" width="18" height="18" rx="2"/>
-              <circle cx="8.5" cy="8.5" r="1.5"/>
-              <path d="M21 15l-5-5L5 21"/>
-            </svg>
-            Gallery
-          </a>
           <a href="/agents.html" class="mega-menu__link">
             <svg class="mega-menu__link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M12 2a5 5 0 015 5c0 2.76-2.24 5-5 5s-5-2.24-5-5a5 5 0 015-5z"/>
@@ -1588,6 +1626,12 @@
             </svg>
             Leaderboard
           </a>
+          <a href="/rewards.html" class="mega-menu__link">
+            <svg class="mega-menu__link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+            </svg>
+            Rewards
+          </a>
         </div>
       </div>
       
@@ -1603,17 +1647,18 @@
         <div class="mega-menu__links">
           <a href="/tokenomics.html" class="mega-menu__link">
             <svg class="mega-menu__link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 6v12M9 9h6M9 15h6"/>
+            </svg>
+            $PHOS
+          </a>
+          <a href="/tokenomics.html#details" class="mega-menu__link">
+            <svg class="mega-menu__link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M12 2L2 7l10 5 10-5-10-5z"/>
               <path d="M2 17l10 5 10-5"/>
               <path d="M2 12l10 5 10-5"/>
             </svg>
-            $PHOS Tokenomics
-          </a>
-          <a href="/rewards.html" class="mega-menu__link">
-            <svg class="mega-menu__link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
-            </svg>
-            Rewards
+            Tokenomics
           </a>
         </div>
       </div>
@@ -1655,21 +1700,24 @@
       </svg>
     </button>
     
+    <!-- Gallery as primary link -->
+    <a href="/gallery.html" class="mobile-nav__link mobile-nav__link--primary">Gallery</a>
+    
     <div class="mobile-nav__section">
       <div class="mobile-nav__label">Explore</div>
       <div class="mobile-nav__links">
-        <a href="/gallery.html" class="mobile-nav__link">Gallery</a>
         <a href="/agents.html" class="mobile-nav__link">Agents</a>
         <a href="/activity.html" class="mobile-nav__link">Activity</a>
         <a href="/leaderboard.html" class="mobile-nav__link">Leaderboard</a>
+        <a href="/rewards.html" class="mobile-nav__link">Rewards</a>
       </div>
     </div>
     
     <div class="mobile-nav__section">
       <div class="mobile-nav__label">Token</div>
       <div class="mobile-nav__links">
-        <a href="/tokenomics.html" class="mobile-nav__link">$PHOS Tokenomics</a>
-        <a href="/rewards.html" class="mobile-nav__link">Rewards</a>
+        <a href="/tokenomics.html" class="mobile-nav__link">$PHOS</a>
+        <a href="/tokenomics.html#details" class="mobile-nav__link">Tokenomics</a>
       </div>
     </div>
     
