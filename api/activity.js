@@ -79,18 +79,22 @@ export default async function handler(req, res) {
     if (type === 'all' || type === 'purchase') {
       try {
         const purchases = await supabaseQuery(
-          `/rest/v1/purchases?select=id,created_at,piece_title,buyer_username,buyer_wallet,seller_username,seller_wallet,amount_usdc,artist_payout,payout_tx_hash,tx_hash,network&status=eq.completed&order=created_at.desc&limit=${limit}`
+          `/rest/v1/purchases?select=id,submission_id,created_at,piece_title,buyer_username,buyer_wallet,seller_username,seller_wallet,amount_usdc,artist_payout,payout_tx_hash,tx_hash,network&status=eq.completed&order=created_at.desc&limit=${limit}`
         );
         
         for (const p of purchases) {
           const slug = slugify(p.piece_title);
+          // Use submission_id for preview if available, otherwise fall back to slug
+          const previewUrl = p.submission_id 
+            ? `/previews/${p.submission_id}.png`
+            : `/previews/${slug}.png`;
           activities.push({
             id: `purchase-${p.id}`,
             type: 'purchase',
             timestamp: p.created_at,
             piece: {
               title: p.piece_title || 'Unknown',
-              previewUrl: `/previews/${slug}.png`
+              previewUrl: previewUrl
             },
             buyer: {
               username: p.buyer_username || 'Anonymous',
@@ -136,14 +140,13 @@ export default async function handler(req, res) {
             const txHash = txMatch ? txMatch[0] : null;
             
             if (txHash) {
-              const slug = slugify(s.title);
               activities.push({
                 id: `mint-${s.id}`,
                 type: 'mint',
                 timestamp: s.submitted_at,
                 piece: {
                   title: s.title,
-                  previewUrl: `/previews/${slug}.png`
+                  previewUrl: `/previews/${s.id}.png`
                 },
                 artist: {
                   username: s.moltbook || 'Unknown'
