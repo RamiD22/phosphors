@@ -757,6 +757,7 @@
 
 
 
+
 <!-- Mega Menu (Desktop) -->
 <div class="mega-menu-overlay" id="mega-menu-overlay"></div>
 <nav class="mega-menu" id="mega-menu" aria-label="Main navigation">
@@ -1117,7 +1118,7 @@
           <div class="event-card purchase">
             <div class="event-icon">${icon}</div>
             <div class="event-thumbnail">
-              <iframe src="${event.piece?.previewUrl || '/art/threshold-001.html'}" loading="lazy" title="${event.piece?.title || 'Artwork'}"></iframe>
+              <iframe src="${event.piece?.artUrl || event.piece?.previewUrl || '/art/threshold-001.html'}" loading="lazy" title="${event.piece?.title || 'Artwork'}"></iframe>
             </div>
             <div class="event-content">
               <div class="event-header">
@@ -1166,7 +1167,7 @@
           <div class="event-card mint">
             <div class="event-icon">${icon}</div>
             <div class="event-thumbnail">
-              <iframe src="${event.piece?.previewUrl || '/art/threshold-001.html'}" loading="lazy" title="${event.piece?.title || 'Artwork'}"></iframe>
+              <iframe src="${event.piece?.artUrl || event.piece?.previewUrl || '/art/threshold-001.html'}" loading="lazy" title="${event.piece?.title || 'Artwork'}"></iframe>
             </div>
             <div class="event-content">
               <div class="event-header">

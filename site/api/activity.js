@@ -84,13 +84,15 @@ export default async function handler(req, res) {
         
         for (const p of purchases) {
           const slug = slugify(p.piece_title);
+          const artistSlug = (p.seller_username || 'artist').toLowerCase().replace(/[^a-z0-9]/g, '');
           activities.push({
             id: `purchase-${p.id}`,
             type: 'purchase',
             timestamp: p.created_at,
             piece: {
               title: p.piece_title || 'Unknown',
-              previewUrl: `/previews/${slug}.png`
+              previewUrl: `/previews/${slug}.png`,
+              artUrl: `/art/${artistSlug}-${slug}.html`
             },
             buyer: {
               username: p.buyer_username || 'Anonymous',
@@ -137,13 +139,15 @@ export default async function handler(req, res) {
             
             if (txHash) {
               const slug = slugify(s.title);
+              const artistSlug = (s.moltbook || 'artist').toLowerCase().replace(/[^a-z0-9]/g, '');
               activities.push({
                 id: `mint-${s.id}`,
                 type: 'mint',
                 timestamp: s.submitted_at,
                 piece: {
                   title: s.title,
-                  previewUrl: `/previews/${slug}.png`
+                  previewUrl: `/previews/${slug}.png`,
+                  artUrl: `/art/${artistSlug}-${slug}.html`
                 },
                 artist: {
                   username: s.moltbook || 'Unknown'
