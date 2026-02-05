@@ -84,11 +84,11 @@ async function build() {
     const artistSlug = slugify(sub.moltbook);
     const artUrl = sub.url.replace('https://phosphors.xyz', '');
     
-    // Determine collection and price based on token ID range
+    // Determine collection based on token ID range
     const isGenesis = sub.token_id && sub.token_id <= 10;
     const collection = isGenesis ? 'Genesis Collection' : 'Platform Collection';
-    const price = isGenesis ? '0.10' : '0.05';
-    const priceRaw = isGenesis ? '0.10' : '0.05';
+    const price = '1.00';
+    const priceRaw = '1.00';
     const contract = isGenesis ? GENESIS_CONTRACT : PLATFORM_CONTRACT;
     const contractShort = contract ? `${contract.slice(0, 6)}...${contract.slice(-4)}` : '';
     

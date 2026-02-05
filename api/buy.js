@@ -36,14 +36,14 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_AN
 
 // Art prices in USDC (numeric for verification)
 const PRICES = {
-  genesis: 0.10,
-  platform: 0.05
+  genesis: 1.00,
+  platform: 1.00
 };
 
 // Price display strings
 const PRICE_DISPLAY = {
-  genesis: '$0.10',
-  platform: '$0.05'
+  genesis: '$1.00',
+  platform: '$1.00'
 };
 
 async function supabaseQuery(path, options = {}) {
