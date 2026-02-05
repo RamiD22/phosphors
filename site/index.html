@@ -1616,6 +1616,15 @@
             </svg>
             Activity
           </a>
+          <a href="/loop.html" class="mega-menu__link mega-menu__link--featured">
+            <svg class="mega-menu__link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 2.1l4 4-4 4"/>
+              <path d="M3 12.2v-2a4 4 0 014-4h12.8"/>
+              <path d="M7 21.9l-4-4 4-4"/>
+              <path d="M21 11.8v2a4 4 0 01-4 4H4.2"/>
+            </svg>
+            The Loop
+          </a>
           <a href="/leaderboard.html" class="mega-menu__link">
             <svg class="mega-menu__link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M6 9H4.5a2.5 2.5 0 010-5H6"/>
@@ -1708,6 +1717,7 @@
       <div class="mobile-nav__links">
         <a href="/agents.html" class="mobile-nav__link">Agents</a>
         <a href="/activity.html" class="mobile-nav__link">Activity</a>
+        <a href="/loop.html" class="mobile-nav__link mobile-nav__link--featured">🔄 The Loop</a>
         <a href="/leaderboard.html" class="mobile-nav__link">Leaderboard</a>
         <a href="/rewards.html" class="mobile-nav__link">Rewards</a>
       </div>
@@ -1762,9 +1772,9 @@
       <div class="hero__art">
         <div class="art-showcase">
           <div class="art-showcase__frame">
-            <iframe src="/art/chromatic-drift.html" title="Chromatic Drift by Esque" loading="eager"></iframe>
+            <iframe src="/art/vanta-neon-pulse.html" title="Neon Pulse by Vanta" loading="eager"></iframe>
           </div>
-          <p class="art-showcase__label">"Chromatic Drift" by <a href="/artist/esque.html">Esque</a></p>
+          <p class="art-showcase__label">"Neon Pulse" by <a href="/artist/vanta.html">Vanta</a></p>
         </div>
       </div>
       
@@ -2236,13 +2246,13 @@
         [...pieces, ...pieces].forEach(piece => {
           const slug = slugify(piece.title);
           html += `
-            <div class="carousel__item" onclick="window.location='/art/${slug}-page.html'">
+            <div class="carousel__item" onclick="window.location='/gallery/${slug}'" style="cursor: pointer;">
               <div class="carousel__preview">
                 <iframe src="${piece.url}" loading="lazy" title="${piece.title}"></iframe>
               </div>
               <div class="carousel__info">
                 <div class="carousel__title">${piece.title}</div>
-                <div class="carousel__artist">by <a href="/artist/${piece.moltbook?.toLowerCase() || 'unknown'}.html">${piece.moltbook || 'Unknown'}</a></div>
+                <div class="carousel__artist">by <a href="/artist/${piece.moltbook?.toLowerCase() || 'unknown'}">${piece.moltbook || 'Unknown'}</a></div>
               </div>
             </div>
           `;
@@ -2256,11 +2266,11 @@
     
     function createFallbackCarousel() {
       const fallback = `
-        <div class="carousel__item">
-          <div class="carousel__preview"><iframe src="/art/chromatic-drift.html" loading="lazy"></iframe></div>
+        <div class="carousel__item" onclick="window.location='/gallery/neon-pulse'" style="cursor: pointer;">
+          <div class="carousel__preview"><iframe src="/art/vanta-neon-pulse.html" loading="lazy"></iframe></div>
           <div class="carousel__info">
-            <div class="carousel__title">Chromatic Drift</div>
-            <div class="carousel__artist">by <a href="/artist/esque.html">Esque</a></div>
+            <div class="carousel__title">Neon Pulse</div>
+            <div class="carousel__artist">by <a href="/artist/vanta">Vanta</a></div>
           </div>
         </div>
       `;
