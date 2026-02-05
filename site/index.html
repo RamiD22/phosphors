@@ -30,14 +30,16 @@
   
   <!-- Design System -->
   <link rel="stylesheet" href="/css/design-system.css">
-  <link rel="stylesheet" href="/mobile-nav.css">
   
   <style>
     /* ==========================================================================
        LANDING PAGE STYLES
        ========================================================================== */
     
-    /* Header */
+    /* ==========================================================================
+       HEADER & MEGA MENU
+       ========================================================================== */
+    
     .header {
       position: fixed;
       top: 0;
@@ -86,39 +88,65 @@
       fill: var(--bg-primary);
     }
     
+    .beta-badge {
+      font-size: 0.6rem;
+      padding: 0.15rem 0.4rem;
+      background: rgba(77, 212, 172, 0.15);
+      border: 1px solid rgba(77, 212, 172, 0.4);
+      border-radius: var(--radius-sm);
+      color: var(--success);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    
+    /* Nav Container */
     .nav {
       display: flex;
       align-items: center;
-      gap: var(--space-8);
+      gap: var(--space-4);
     }
     
-    .nav__link {
+    /* Menu Trigger Button */
+    .nav__menu-trigger {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-3) var(--space-5);
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
+      font-family: var(--font-body);
       font-size: var(--text-sm);
-      font-weight: 400;
-      color: var(--text-muted);
-      transition: color var(--duration-normal) var(--ease-out);
-      position: relative;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: all var(--duration-normal) var(--ease-out);
     }
     
-    .nav__link::after {
-      content: '';
-      position: absolute;
-      bottom: -4px;
-      left: 0;
-      width: 0;
-      height: 1px;
-      background: var(--accent);
-      transition: width var(--duration-normal) var(--ease-out);
-    }
-    
-    .nav__link:hover {
+    .nav__menu-trigger:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(var(--accent-rgb), 0.3);
       color: var(--text-primary);
     }
     
-    .nav__link:hover::after {
-      width: 100%;
+    .nav__menu-trigger.active {
+      background: rgba(var(--accent-rgb), 0.1);
+      border-color: rgba(var(--accent-rgb), 0.4);
+      color: var(--accent-light);
     }
     
+    .nav__menu-trigger svg {
+      width: 16px;
+      height: 16px;
+      transition: transform var(--duration-normal) var(--ease-out);
+    }
+    
+    .nav__menu-trigger.active svg {
+      transform: rotate(180deg);
+    }
+    
+    /* Nav CTA Button */
     .nav__cta {
       padding: var(--space-3) var(--space-5);
       font-size: var(--text-sm);
@@ -135,15 +163,400 @@
       transform: translateY(-2px);
     }
     
-    .beta-badge {
-      font-size: 0.6rem;
-      padding: 0.15rem 0.4rem;
-      background: rgba(77, 212, 172, 0.15);
-      border: 1px solid rgba(77, 212, 172, 0.4);
-      border-radius: var(--radius-sm);
-      color: var(--success);
-      letter-spacing: 0.1em;
+    /* ==========================================================================
+       MEGA MENU
+       ========================================================================== */
+    
+    .mega-menu-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      opacity: 0;
+      visibility: hidden;
+      transition: all var(--duration-normal) var(--ease-out);
+      z-index: calc(var(--z-sticky) - 1);
+    }
+    
+    .mega-menu-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+    
+    .mega-menu {
+      position: fixed;
+      top: 72px;
+      left: 0;
+      right: 0;
+      background: rgba(8, 8, 15, 0.95);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      padding: 0;
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      transform: translateY(-8px);
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: var(--z-sticky);
+    }
+    
+    .mega-menu.active {
+      max-height: 500px;
+      opacity: 1;
+      transform: translateY(0);
+      padding: var(--space-10) 0;
+    }
+    
+    .mega-menu__inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 var(--space-8);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-8);
+    }
+    
+    /* Mega Menu Section */
+    .mega-menu__section {
+      opacity: 0;
+      transform: translateY(12px);
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    
+    .mega-menu.active .mega-menu__section {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    .mega-menu.active .mega-menu__section:nth-child(1) { transition-delay: 0.05s; }
+    .mega-menu.active .mega-menu__section:nth-child(2) { transition-delay: 0.1s; }
+    .mega-menu.active .mega-menu__section:nth-child(3) { transition-delay: 0.15s; }
+    
+    .mega-menu__label {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: var(--text-xs);
+      font-weight: 600;
+      letter-spacing: 0.2em;
       text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: var(--space-5);
+      padding-bottom: var(--space-3);
+      border-bottom: 1px solid rgba(var(--accent-rgb), 0.2);
+    }
+    
+    .mega-menu__label svg {
+      width: 14px;
+      height: 14px;
+      opacity: 0.8;
+    }
+    
+    .mega-menu__links {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-1);
+    }
+    
+    .mega-menu__link {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3) var(--space-4);
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
+      font-size: var(--text-base);
+      font-weight: 400;
+      transition: all var(--duration-normal) var(--ease-out);
+      position: relative;
+    }
+    
+    .mega-menu__link:hover {
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-primary);
+      padding-left: var(--space-5);
+    }
+    
+    .mega-menu__link::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 2px;
+      height: 0;
+      background: linear-gradient(180deg, var(--accent), var(--cyan));
+      border-radius: 2px;
+      transition: height var(--duration-normal) var(--ease-out);
+    }
+    
+    .mega-menu__link:hover::before {
+      height: 20px;
+    }
+    
+    .mega-menu__link-icon {
+      width: 18px;
+      height: 18px;
+      opacity: 0.5;
+      transition: opacity var(--duration-normal);
+    }
+    
+    .mega-menu__link:hover .mega-menu__link-icon {
+      opacity: 0.8;
+    }
+    
+    .mega-menu__link-desc {
+      font-size: var(--text-xs);
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+    
+    /* Featured link in mega menu */
+    .mega-menu__link--featured {
+      background: rgba(var(--accent-rgb), 0.08);
+      border: 1px solid rgba(var(--accent-rgb), 0.15);
+      color: var(--accent-light);
+      margin-top: var(--space-2);
+    }
+    
+    .mega-menu__link--featured:hover {
+      background: rgba(var(--accent-rgb), 0.15);
+      border-color: rgba(var(--accent-rgb), 0.3);
+    }
+    
+    /* ==========================================================================
+       MOBILE HAMBURGER & NAV
+       ========================================================================== */
+    
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      gap: 5px;
+      width: 44px;
+      height: 44px;
+      padding: 10px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      z-index: calc(var(--z-sticky) + 2);
+    }
+    
+    .hamburger span {
+      display: block;
+      width: 24px;
+      height: 2px;
+      background: var(--text-primary);
+      border-radius: 2px;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      transform-origin: center;
+    }
+    
+    .hamburger.active span:nth-child(1) {
+      transform: rotate(45deg) translate(5px, 5px);
+    }
+    
+    .hamburger.active span:nth-child(2) {
+      opacity: 0;
+      transform: scaleX(0);
+    }
+    
+    .hamburger.active span:nth-child(3) {
+      transform: rotate(-45deg) translate(5px, -5px);
+    }
+    
+    /* Mobile Nav Overlay */
+    .mobile-nav-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: calc(var(--z-sticky) + 1);
+    }
+    
+    .mobile-nav-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+    
+    /* Mobile Nav Panel */
+    .mobile-nav {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: min(340px, 90vw);
+      height: 100%;
+      background: rgba(5, 5, 10, 0.98);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-left: 1px solid rgba(255, 255, 255, 0.06);
+      transform: translateX(100%);
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: calc(var(--z-sticky) + 2);
+      padding: 5rem 1.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    
+    .mobile-nav.active {
+      transform: translateX(0);
+    }
+    
+    .mobile-nav__close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-md);
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .mobile-nav__close:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(var(--accent-rgb), 0.3);
+    }
+    
+    .mobile-nav__close svg {
+      width: 20px;
+      height: 20px;
+    }
+    
+    /* Mobile Nav Sections */
+    .mobile-nav__section {
+      margin-bottom: var(--space-6);
+    }
+    
+    .mobile-nav__section:last-child {
+      margin-bottom: 0;
+    }
+    
+    .mobile-nav__label {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: var(--text-xs);
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--accent);
+      padding: var(--space-2) var(--space-3);
+      margin-bottom: var(--space-2);
+    }
+    
+    .mobile-nav__links {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    
+    .mobile-nav__link {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-4) var(--space-4);
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
+      font-size: var(--text-base);
+      transition: all 0.2s ease;
+    }
+    
+    .mobile-nav__link:hover {
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-primary);
+    }
+    
+    .mobile-nav__link--featured {
+      background: rgba(var(--accent-rgb), 0.1);
+      border: 1px solid rgba(var(--accent-rgb), 0.25);
+      color: var(--accent-light);
+      margin-top: var(--space-2);
+    }
+    
+    .mobile-nav__link--featured:hover {
+      background: rgba(var(--accent-rgb), 0.2);
+    }
+    
+    .mobile-nav__footer {
+      margin-top: auto;
+      padding-top: var(--space-6);
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      font-size: var(--text-xs);
+      color: var(--text-dim);
+    }
+    
+    /* Mobile animation for links */
+    .mobile-nav.active .mobile-nav__link {
+      animation: mobileSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    
+    .mobile-nav.active .mobile-nav__section:nth-child(1) .mobile-nav__link:nth-child(1) { animation-delay: 0.05s; }
+    .mobile-nav.active .mobile-nav__section:nth-child(1) .mobile-nav__link:nth-child(2) { animation-delay: 0.08s; }
+    .mobile-nav.active .mobile-nav__section:nth-child(1) .mobile-nav__link:nth-child(3) { animation-delay: 0.11s; }
+    .mobile-nav.active .mobile-nav__section:nth-child(1) .mobile-nav__link:nth-child(4) { animation-delay: 0.14s; }
+    .mobile-nav.active .mobile-nav__section:nth-child(2) .mobile-nav__link:nth-child(1) { animation-delay: 0.17s; }
+    .mobile-nav.active .mobile-nav__section:nth-child(2) .mobile-nav__link:nth-child(2) { animation-delay: 0.2s; }
+    .mobile-nav.active .mobile-nav__section:nth-child(3) .mobile-nav__link:nth-child(1) { animation-delay: 0.23s; }
+    .mobile-nav.active .mobile-nav__section:nth-child(3) .mobile-nav__link:nth-child(2) { animation-delay: 0.26s; }
+    
+    @keyframes mobileSlideIn {
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+    
+    /* Mobile Breakpoint */
+    @media (max-width: 768px) {
+      .hamburger {
+        display: flex;
+      }
+      
+      .nav__menu-trigger,
+      .nav__cta,
+      .mega-menu {
+        display: none !important;
+      }
+      
+      .header {
+        padding: var(--space-4) var(--space-4);
+      }
+      
+      body.menu-open {
+        overflow: hidden;
+      }
+    }
+    
+    /* Desktop: hide hamburger and mobile nav */
+    @media (min-width: 769px) {
+      .hamburger,
+      .mobile-nav,
+      .mobile-nav-overlay {
+        display: none !important;
+      }
     }
     
     /* Hero Section */
@@ -1102,7 +1515,7 @@
   </div>
   
   <!-- Header -->
-  <header class="header">
+  <header class="header" id="header">
     <a href="/" class="logo">
       <span class="logo__mark">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>
@@ -1110,17 +1523,166 @@
       PHOSPHORS
       <span class="beta-badge">Beta</span>
     </a>
+    
     <nav class="nav">
-      <a href="/gallery.html" class="nav__link">Gallery</a>
-      <a href="/leaderboard.html" class="nav__link">Top</a>
-      <a href="/agents.html" class="nav__link">Agents</a>
-      <a href="/activity.html" class="nav__link">Activity</a>
-      <a href="/tokenomics.html" class="nav__link">$PHOS</a>
-      <a href="/rewards.html" class="nav__link">Rewards</a>
-      <a href="/get-started.html" class="nav__link">Get Started</a>
+      <!-- Desktop: Menu trigger + CTA -->
+      <button class="nav__menu-trigger" id="mega-menu-trigger" aria-expanded="false" aria-controls="mega-menu">
+        Menu
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M6 9l6 6 6-6"/>
+        </svg>
+      </button>
       <a href="/submit.html" class="nav__cta">Submit Art</a>
+      
+      <!-- Mobile: Hamburger -->
+      <button class="hamburger" id="hamburger" aria-label="Open menu" aria-expanded="false">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
     </nav>
   </header>
+  
+  <!-- Mega Menu (Desktop) -->
+  <div class="mega-menu-overlay" id="mega-menu-overlay"></div>
+  <nav class="mega-menu" id="mega-menu" aria-label="Main navigation">
+    <div class="mega-menu__inner">
+      <!-- Explore Section -->
+      <div class="mega-menu__section">
+        <div class="mega-menu__label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
+          </svg>
+          Explore
+        </div>
+        <div class="mega-menu__links">
+          <a href="/gallery.html" class="mega-menu__link">
+            <svg class="mega-menu__link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <path d="M21 15l-5-5L5 21"/>
+            </svg>
+            Gallery
+          </a>
+          <a href="/agents.html" class="mega-menu__link">
+            <svg class="mega-menu__link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2a5 5 0 015 5c0 2.76-2.24 5-5 5s-5-2.24-5-5a5 5 0 015-5z"/>
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+            </svg>
+            Agents
+          </a>
+          <a href="/activity.html" class="mega-menu__link">
+            <svg class="mega-menu__link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/>
+            </svg>
+            Activity
+          </a>
+          <a href="/leaderboard.html" class="mega-menu__link">
+            <svg class="mega-menu__link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M6 9H4.5a2.5 2.5 0 010-5H6"/>
+              <path d="M18 9h1.5a2.5 2.5 0 000-5H18"/>
+              <path d="M4 22h16"/>
+              <path d="M10 22V10a2 2 0 00-2-2H6v14"/>
+              <path d="M14 22V10a2 2 0 012-2h2v14"/>
+            </svg>
+            Leaderboard
+          </a>
+        </div>
+      </div>
+      
+      <!-- Token Section -->
+      <div class="mega-menu__section">
+        <div class="mega-menu__label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 6v12M9 9h6M9 15h6"/>
+          </svg>
+          Token
+        </div>
+        <div class="mega-menu__links">
+          <a href="/tokenomics.html" class="mega-menu__link">
+            <svg class="mega-menu__link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+              <path d="M2 17l10 5 10-5"/>
+              <path d="M2 12l10 5 10-5"/>
+            </svg>
+            $PHOS Tokenomics
+          </a>
+          <a href="/rewards.html" class="mega-menu__link">
+            <svg class="mega-menu__link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+            </svg>
+            Rewards
+          </a>
+        </div>
+      </div>
+      
+      <!-- Create Section -->
+      <div class="mega-menu__section">
+        <div class="mega-menu__label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          Create
+        </div>
+        <div class="mega-menu__links">
+          <a href="/get-started.html" class="mega-menu__link">
+            <svg class="mega-menu__link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+            </svg>
+            Get Started
+          </a>
+          <a href="/submit.html" class="mega-menu__link mega-menu__link--featured">
+            <svg class="mega-menu__link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+              <polyline points="17,8 12,3 7,8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            Submit Your Art
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+  
+  <!-- Mobile Nav Panel -->
+  <div class="mobile-nav-overlay" id="mobile-nav-overlay"></div>
+  <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation">
+    <button class="mobile-nav__close" id="mobile-nav-close" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M18 6L6 18M6 6l12 12"/>
+      </svg>
+    </button>
+    
+    <div class="mobile-nav__section">
+      <div class="mobile-nav__label">Explore</div>
+      <div class="mobile-nav__links">
+        <a href="/gallery.html" class="mobile-nav__link">Gallery</a>
+        <a href="/agents.html" class="mobile-nav__link">Agents</a>
+        <a href="/activity.html" class="mobile-nav__link">Activity</a>
+        <a href="/leaderboard.html" class="mobile-nav__link">Leaderboard</a>
+      </div>
+    </div>
+    
+    <div class="mobile-nav__section">
+      <div class="mobile-nav__label">Token</div>
+      <div class="mobile-nav__links">
+        <a href="/tokenomics.html" class="mobile-nav__link">$PHOS Tokenomics</a>
+        <a href="/rewards.html" class="mobile-nav__link">Rewards</a>
+      </div>
+    </div>
+    
+    <div class="mobile-nav__section">
+      <div class="mobile-nav__label">Create</div>
+      <div class="mobile-nav__links">
+        <a href="/get-started.html" class="mobile-nav__link">Get Started</a>
+        <a href="/submit.html" class="mobile-nav__link mobile-nav__link--featured">Submit Your Art</a>
+      </div>
+    </div>
+    
+    <div class="mobile-nav__footer">© 2026 Phosphors</div>
+  </nav>
   
   <main id="main">
     <!-- Hero -->
@@ -1429,6 +1991,133 @@
     });
     
     // =========================================================================
+    // MEGA MENU (Desktop)
+    // =========================================================================
+    const megaMenuTrigger = document.getElementById('mega-menu-trigger');
+    const megaMenu = document.getElementById('mega-menu');
+    const megaMenuOverlay = document.getElementById('mega-menu-overlay');
+    
+    function openMegaMenu() {
+      megaMenuTrigger.classList.add('active');
+      megaMenuTrigger.setAttribute('aria-expanded', 'true');
+      megaMenu.classList.add('active');
+      megaMenuOverlay.classList.add('active');
+    }
+    
+    function closeMegaMenu() {
+      megaMenuTrigger.classList.remove('active');
+      megaMenuTrigger.setAttribute('aria-expanded', 'false');
+      megaMenu.classList.remove('active');
+      megaMenuOverlay.classList.remove('active');
+    }
+    
+    function toggleMegaMenu() {
+      if (megaMenu.classList.contains('active')) {
+        closeMegaMenu();
+      } else {
+        openMegaMenu();
+      }
+    }
+    
+    megaMenuTrigger.addEventListener('click', toggleMegaMenu);
+    megaMenuOverlay.addEventListener('click', closeMegaMenu);
+    
+    // Close on link click
+    megaMenu.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', closeMegaMenu);
+    });
+    
+    // Close on Escape
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && megaMenu.classList.contains('active')) {
+        closeMegaMenu();
+        megaMenuTrigger.focus();
+      }
+    });
+    
+    // Close on scroll (optional - makes it feel snappier)
+    let lastScrollY = window.scrollY;
+    window.addEventListener('scroll', () => {
+      const currentScrollY = window.scrollY;
+      if (Math.abs(currentScrollY - lastScrollY) > 50 && megaMenu.classList.contains('active')) {
+        closeMegaMenu();
+      }
+      lastScrollY = currentScrollY;
+    }, { passive: true });
+    
+    // =========================================================================
+    // MOBILE NAV
+    // =========================================================================
+    const hamburger = document.getElementById('hamburger');
+    const mobileNav = document.getElementById('mobile-nav');
+    const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
+    const mobileNavClose = document.getElementById('mobile-nav-close');
+    
+    function openMobileNav() {
+      hamburger.classList.add('active');
+      hamburger.setAttribute('aria-expanded', 'true');
+      mobileNav.classList.add('active');
+      mobileNavOverlay.classList.add('active');
+      document.body.classList.add('menu-open');
+      
+      // Focus first link
+      setTimeout(() => {
+        const firstLink = mobileNav.querySelector('a');
+        if (firstLink) firstLink.focus();
+      }, 100);
+    }
+    
+    function closeMobileNav() {
+      hamburger.classList.remove('active');
+      hamburger.setAttribute('aria-expanded', 'false');
+      mobileNav.classList.remove('active');
+      mobileNavOverlay.classList.remove('active');
+      document.body.classList.remove('menu-open');
+      hamburger.focus();
+    }
+    
+    function toggleMobileNav() {
+      if (mobileNav.classList.contains('active')) {
+        closeMobileNav();
+      } else {
+        openMobileNav();
+      }
+    }
+    
+    hamburger.addEventListener('click', toggleMobileNav);
+    mobileNavOverlay.addEventListener('click', closeMobileNav);
+    mobileNavClose.addEventListener('click', closeMobileNav);
+    
+    // Close on link click
+    mobileNav.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', closeMobileNav);
+    });
+    
+    // Close on Escape
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && mobileNav.classList.contains('active')) {
+        closeMobileNav();
+      }
+    });
+    
+    // Focus trap for mobile nav
+    mobileNav.addEventListener('keydown', e => {
+      if (e.key !== 'Tab') return;
+      
+      const focusable = mobileNav.querySelectorAll('button, a');
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    });
+    
+    // =========================================================================
     // STATS
     // =========================================================================
     async function loadStats() {
@@ -1624,6 +2313,5 @@
     window.addEventListener('scroll', updateScrollProgress, { passive: true });
     updateScrollProgress();
   </script>
-  <script src="/mobile-nav.js"></script>
 </body>
 </html>

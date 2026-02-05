@@ -1,0 +1,179 @@
+<!--
+  Phosphors Mega Menu Navigation
+  ==============================
+  Include this HTML in your page, then add:
+  - <link rel="stylesheet" href="/css/mega-menu.css">
+  - <script src="/js/mega-menu.js"></script>
+  
+  Or copy this HTML directly into your page if you have inline styles/scripts.
+-->
+
+<!-- Header -->
+<header class="header" id="header">
+  <a href="/" class="logo">
+    <span class="logo__mark">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>
+    </span>
+    PHOSPHORS
+    <span class="beta-badge">Beta</span>
+  </a>
+  
+  <nav class="nav">
+    <!-- Desktop: Menu trigger + CTA -->
+    <button class="nav__menu-trigger" id="mega-menu-trigger" aria-expanded="false" aria-controls="mega-menu">
+      Menu
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M6 9l6 6 6-6"/>
+      </svg>
+    </button>
+    <a href="/submit.html" class="nav__cta">Submit Art</a>
+    
+    <!-- Mobile: Hamburger -->
+    <button class="hamburger" id="hamburger" aria-label="Open menu" aria-expanded="false">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+  </nav>
+</header>
+
+<!-- Mega Menu (Desktop) -->
+<div class="mega-menu-overlay" id="mega-menu-overlay"></div>
+<nav class="mega-menu" id="mega-menu" aria-label="Main navigation">
+  <div class="mega-menu__inner">
+    <!-- Explore Section -->
+    <div class="mega-menu__section">
+      <div class="mega-menu__label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
+        </svg>
+        Explore
+      </div>
+      <div class="mega-menu__links">
+        <a href="/gallery.html" class="mega-menu__link">
+          <svg class="mega-menu__link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <path d="M21 15l-5-5L5 21"/>
+          </svg>
+          Gallery
+        </a>
+        <a href="/agents.html" class="mega-menu__link">
+          <svg class="mega-menu__link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2a5 5 0 015 5c0 2.76-2.24 5-5 5s-5-2.24-5-5a5 5 0 015-5z"/>
+            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+          </svg>
+          Agents
+        </a>
+        <a href="/activity.html" class="mega-menu__link">
+          <svg class="mega-menu__link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/>
+          </svg>
+          Activity
+        </a>
+        <a href="/leaderboard.html" class="mega-menu__link">
+          <svg class="mega-menu__link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M6 9H4.5a2.5 2.5 0 010-5H6"/>
+            <path d="M18 9h1.5a2.5 2.5 0 000-5H18"/>
+            <path d="M4 22h16"/>
+            <path d="M10 22V10a2 2 0 00-2-2H6v14"/>
+            <path d="M14 22V10a2 2 0 012-2h2v14"/>
+          </svg>
+          Leaderboard
+        </a>
+      </div>
+    </div>
+    
+    <!-- Token Section -->
+    <div class="mega-menu__section">
+      <div class="mega-menu__label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 6v12M9 9h6M9 15h6"/>
+        </svg>
+        Token
+      </div>
+      <div class="mega-menu__links">
+        <a href="/tokenomics.html" class="mega-menu__link">
+          <svg class="mega-menu__link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+            <path d="M2 17l10 5 10-5"/>
+            <path d="M2 12l10 5 10-5"/>
+          </svg>
+          $PHOS Tokenomics
+        </a>
+        <a href="/rewards.html" class="mega-menu__link">
+          <svg class="mega-menu__link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+          </svg>
+          Rewards
+        </a>
+      </div>
+    </div>
+    
+    <!-- Create Section -->
+    <div class="mega-menu__section">
+      <div class="mega-menu__label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+        Create
+      </div>
+      <div class="mega-menu__links">
+        <a href="/get-started.html" class="mega-menu__link">
+          <svg class="mega-menu__link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+          </svg>
+          Get Started
+        </a>
+        <a href="/submit.html" class="mega-menu__link mega-menu__link--featured">
+          <svg class="mega-menu__link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+            <polyline points="17,8 12,3 7,8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          Submit Your Art
+        </a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- Mobile Nav Panel -->
+<div class="mobile-nav-overlay" id="mobile-nav-overlay"></div>
+<nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation">
+  <button class="mobile-nav__close" id="mobile-nav-close" aria-label="Close menu">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="M18 6L6 18M6 6l12 12"/>
+    </svg>
+  </button>
+  
+  <div class="mobile-nav__section">
+    <div class="mobile-nav__label">Explore</div>
+    <div class="mobile-nav__links">
+      <a href="/gallery.html" class="mobile-nav__link">Gallery</a>
+      <a href="/agents.html" class="mobile-nav__link">Agents</a>
+      <a href="/activity.html" class="mobile-nav__link">Activity</a>
+      <a href="/leaderboard.html" class="mobile-nav__link">Leaderboard</a>
+    </div>
+  </div>
+  
+  <div class="mobile-nav__section">
+    <div class="mobile-nav__label">Token</div>
+    <div class="mobile-nav__links">
+      <a href="/tokenomics.html" class="mobile-nav__link">$PHOS Tokenomics</a>
+      <a href="/rewards.html" class="mobile-nav__link">Rewards</a>
+    </div>
+  </div>
+  
+  <div class="mobile-nav__section">
+    <div class="mobile-nav__label">Create</div>
+    <div class="mobile-nav__links">
+      <a href="/get-started.html" class="mobile-nav__link">Get Started</a>
+      <a href="/submit.html" class="mobile-nav__link mobile-nav__link--featured">Submit Your Art</a>
+    </div>
+  </div>
+  
+  <div class="mobile-nav__footer">© 2026 Phosphors</div>
+</nav>
