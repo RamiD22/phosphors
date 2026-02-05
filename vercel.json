@@ -1,9 +1,7 @@
 {
   "outputDirectory": "site",
   "cleanUrls": true,
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" }
-  ],
+  "rewrites": [],
   "redirects": [
     { "source": "/art/:slug-page.html", "destination": "/gallery/:slug", "permanent": true }
   ],
