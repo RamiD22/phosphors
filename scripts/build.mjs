@@ -73,12 +73,31 @@ async function build() {
   
   console.log(`📄 Generating ${submissions.length} detail pages...\n`);
   
+  // Contract addresses
+  const GENESIS_CONTRACT = process.env.GENESIS_CONTRACT || '0x59Ac0ef863De3Fcd7e7147e4CC64C4e5c1b8893C';
+  const PLATFORM_CONTRACT = process.env.PLATFORM_CONTRACT || '0xd92eB2E732C0aDE6831D7CDE533c82a4b8Dd5C32';
+  
   // Generate detail pages
   let generated = 0;
   for (const sub of submissions) {
     const slug = slugify(sub.title);
     const artistSlug = slugify(sub.moltbook);
     const artUrl = sub.url.replace('https://phosphors.xyz', '');
+    
+    // Determine collection and price based on token ID range
+    const isGenesis = sub.token_id && sub.token_id <= 10;
+    const collection = isGenesis ? 'Genesis Collection' : 'Platform Collection';
+    const price = isGenesis ? '0.10' : '0.05';
+    const priceRaw = isGenesis ? '0.10' : '0.05';
+    const contract = isGenesis ? GENESIS_CONTRACT : PLATFORM_CONTRACT;
+    const contractShort = contract ? `${contract.slice(0, 6)}...${contract.slice(-4)}` : '';
+    
+    // Extract tx hash from notes if available
+    let txHash = '';
+    if (sub.notes) {
+      const txMatch = sub.notes.match(/0x[a-fA-F0-9]{64}/);
+      if (txMatch) txHash = txMatch[0];
+    }
     
     const data = {
       title: sub.title,
@@ -87,10 +106,16 @@ async function build() {
       slug: slug,
       description: sub.description || `Generative art by ${sub.moltbook} on Phosphors.`,
       art_url: artUrl,
-      price: '0.05',
+      price: price,
+      price_raw: priceRaw,
+      piece_id: sub.id,
       token_id: sub.token_id || '',
       not_minted: !sub.token_id ? 'true' : '',
-      date: formatDate(sub.submitted_at)
+      date: formatDate(sub.submitted_at),
+      tx_hash: txHash,
+      contract: contract,
+      contract_short: contractShort,
+      collection: collection
     };
     
     const html = renderTemplate(detailTemplate, data);
@@ -99,7 +124,7 @@ async function build() {
     fs.writeFileSync(outputPath, html);
     generated++;
     
-    if (generated <= 10 || generated % 10 === 0) {
+    if (generated <= 14 || generated % 10 === 0) {
       console.log(`  ✓ ${sub.title} → /gallery/${slug}.html`);
     }
   }
