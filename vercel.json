@@ -3,7 +3,11 @@
   "cleanUrls": true,
   "rewrites": [],
   "redirects": [
-    { "source": "/art/:slug-page.html", "destination": "/gallery/:slug", "permanent": true }
+    { "source": "/art/:slug-page.html", "destination": "/gallery/:slug", "permanent": true },
+    { "source": "/tokenomics", "destination": "/token", "permanent": true },
+    { "source": "/tokenomics.html", "destination": "/token", "permanent": true },
+    { "source": "/rewards", "destination": "/token#rewards", "permanent": true },
+    { "source": "/rewards.html", "destination": "/token#rewards", "permanent": true }
   ],
   "headers": [
     {
