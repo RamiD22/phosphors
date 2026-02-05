@@ -9,6 +9,10 @@
     {
       "source": "/art/:slug((?!.*\\.html$)[^/]+)",
       "destination": "/api/art/:slug"
+    },
+    {
+      "source": "/collector/:username",
+      "destination": "/collector.html"
     }
   ],
   "headers": [
