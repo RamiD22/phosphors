@@ -20,9 +20,13 @@ function ensureCdpConfigured() {
     throw new Error('CDP credentials not configured (CDP_API_KEY_ID, CDP_API_KEY_SECRET)');
   }
   
+  // Trim whitespace and handle escaped newlines (Vercel may add trailing newline)
+  const apiKeyName = process.env.CDP_API_KEY_ID.trim();
+  const privateKey = process.env.CDP_API_KEY_SECRET.trim().replace(/\\n/g, '\n');
+  
   Coinbase.configure({
-    apiKeyName: process.env.CDP_API_KEY_ID,
-    privateKey: process.env.CDP_API_KEY_SECRET.replace(/\\n/g, '\n')
+    apiKeyName,
+    privateKey
   });
   
   cdpConfigured = true;

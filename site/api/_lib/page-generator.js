@@ -327,19 +327,31 @@ export async function generateArtPage(piece) {
     .art-artist a:hover { text-decoration: underline; }
     .art-description { color: var(--muted); line-height: 1.7; margin-bottom: 2rem; }
     
-    .collect-btn {
+    .art-actions { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .collect-btn, .license-btn {
       display: inline-block;
       padding: 1rem 2rem;
-      background: var(--accent);
-      color: var(--bg);
       font-weight: 600;
       text-decoration: none;
       border-radius: 4px;
       transition: all 0.3s;
     }
+    .collect-btn {
+      background: var(--accent);
+      color: var(--bg);
+    }
     .collect-btn:hover {
       transform: translateY(-2px);
       box-shadow: 0 4px 20px var(--accent-glow);
+    }
+    .license-btn {
+      background: rgba(77, 212, 172, 0.15);
+      border: 1px solid rgba(77, 212, 172, 0.4);
+      color: #4dd4ac;
+    }
+    .license-btn:hover {
+      background: rgba(77, 212, 172, 0.25);
+      transform: translateY(-2px);
     }
 
     @media (max-width: 900px) {
@@ -369,7 +381,10 @@ export async function generateArtPage(piece) {
         ${tokenDisplay ? `<div class="art-token">Token ${tokenDisplay}</div>` : ''}
         <div class="art-artist">by <a href="/artist/${artistName.toLowerCase()}.html">${artistName}</a></div>
         <p class="art-description">${pieceDescription}</p>
-        <a href="/gallery.html" class="collect-btn">View Gallery</a>
+        <div class="art-actions">
+          <a href="/gallery.html" class="collect-btn">View Gallery</a>
+          <a href="/license.html" class="license-btn">License This Piece</a>
+        </div>
       </div>
     </div>
   </div>

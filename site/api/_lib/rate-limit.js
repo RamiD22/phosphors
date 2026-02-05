@@ -77,5 +77,7 @@ export const RATE_LIMITS = {
   verify: { limit: 10, windowMs: 60 * 60 * 1000 },   // 10 per hour
   profile: { limit: 60, windowMs: 60 * 1000 },       // 60 per minute
   buy: { limit: 30, windowMs: 60 * 1000 },           // 30 per minute
-  submit: { limit: 10, windowMs: 60 * 60 * 1000 }    // 10 submissions per hour
+  submit: { limit: 10, windowMs: 60 * 60 * 1000 },   // 10 submissions per hour
+  standard: { limit: 60, windowMs: 60 * 1000 },      // 60 per minute (general use)
+  bounties: { limit: 30, windowMs: 60 * 1000 }       // 30 per minute for bounty queries
 };

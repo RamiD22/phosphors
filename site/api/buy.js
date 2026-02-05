@@ -11,6 +11,7 @@ import {
   serverError,
   auditLog
 } from './_lib/security.js';
+import { handleSaleBounties } from './_lib/bounties.js';
 
 // Network configuration
 const IS_MAINNET = process.env.NETWORK_ID === 'base-mainnet';
@@ -22,8 +23,12 @@ const BLOCK_EXPLORER = IS_MAINNET ? 'https://basescan.org' : 'https://sepolia.ba
 const FACILITATOR_URL = 'https://x402.org/facilitator';
 const PAY_TO = process.env.MINTER_WALLET || '0xc27b70A5B583C6E3fF90CcDC4577cC4f1f598281';
 
-// Revenue split (artist gets 100% - we don't take a cut)
+// Revenue split (artist gets 100% of base price)
 const ARTIST_SHARE = 1.0;
+
+// Protocol fee (1% on top - used to buy & burn $PHOS)
+const PROTOCOL_FEE_PERCENT = 0.01;
+const TREASURY_WALLET = process.env.TREASURY_WALLET || PAY_TO; // Fee collection wallet
 
 // Supabase config
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://afcnnalweuwgauzijefs.supabase.co';
@@ -165,8 +170,10 @@ export default async function handler(req, res) {
   
   // Determine price (numeric for verification)
   const isGenesis = id.startsWith('genesis-');
-  const priceNumeric = isGenesis ? PRICES.genesis : PRICES.platform;
-  const priceDisplay = isGenesis ? PRICE_DISPLAY.genesis : PRICE_DISPLAY.platform;
+  const basePrice = isGenesis ? PRICES.genesis : PRICES.platform;
+  const protocolFee = Math.round(basePrice * PROTOCOL_FEE_PERCENT * 1000000) / 1000000; // Round to 6 decimals (USDC precision)
+  const totalPrice = basePrice + protocolFee;
+  const priceDisplay = `$${totalPrice.toFixed(4)}`;
   
   // Check for payment TX in headers (simple payment verification)
   // Accept multiple header formats for compatibility
@@ -212,14 +219,18 @@ export default async function handler(req, res) {
           pieceId: id, 
           artist: artistUsername,
           artistWallet: artistWallet,
-          artistShare: `${ARTIST_SHARE * 100}%`
+          artistShare: '100%',
+          protocolFee: `${PROTOCOL_FEE_PERCENT * 100}%`,
+          feeNote: 'Protocol fee used to buy & burn $PHOS'
         }
       }],
       piece: {
         id,
         title: pieceTitle,
         artist: artistUsername,
-        price: priceDisplay
+        basePrice: `$${basePrice.toFixed(2)}`,
+        protocolFee: `$${protocolFee.toFixed(4)}`,
+        totalPrice: priceDisplay
       },
       error: 'Payment required to purchase this artwork'
     });
@@ -227,11 +238,11 @@ export default async function handler(req, res) {
   
   // Payment received - VERIFY ON-CHAIN before processing
   try {
-    // Verify the payment transaction on-chain
+    // Verify the payment transaction on-chain (verify total price including fee)
     const paymentVerification = await verifyPurchasePayment(
       paymentTx, 
       normalizedBuyer, 
-      priceNumeric
+      totalPrice
     );
     
     if (!paymentVerification.valid) {
@@ -240,7 +251,7 @@ export default async function handler(req, res) {
         txHash: paymentTx,
         buyer: normalizedBuyer,
         pieceId: id,
-        expectedAmount: priceNumeric,
+        expectedAmount: totalPrice,
         error: paymentVerification.error,
         ip: clientIP
       });
@@ -264,8 +275,9 @@ export default async function handler(req, res) {
     let artistPayout = 0;
     
     // Try to pay artist (but don't fail if this doesn't work)
+    // Artist gets 100% of base price (fee is kept for $PHOS burns)
     if (artistWallet && artistWallet !== PAY_TO && process.env.CDP_API_KEY_ID && process.env.CDP_API_KEY_SECRET) {
-      artistPayout = priceNumeric * ARTIST_SHARE;
+      artistPayout = basePrice * ARTIST_SHARE;
       
       try {
         // Initialize wallet for artist payout
@@ -301,7 +313,9 @@ export default async function handler(req, res) {
       submission_id: submission?.id || null,
       tx_hash: paymentTx,
       payout_tx_hash: payoutTxHash,
-      amount_usdc: priceNumeric,
+      amount_usdc: totalPrice,
+      base_price: basePrice,
+      protocol_fee: protocolFee,
       artist_payout: artistPayout,
       network: NETWORK_ID,
       piece_title: pieceTitle,
@@ -316,6 +330,32 @@ export default async function handler(req, res) {
     // Mark the submission as collected
     await markAsCollected(submission?.id, normalizedBuyer, buyerUsername);
     
+    // Process bounty rewards (async, don't block response)
+    let bountyResults = null;
+    try {
+      if (artistWallet && artistWallet !== PAY_TO) {
+        bountyResults = await handleSaleBounties(
+          artistWallet,
+          normalizedBuyer,
+          submission?.id
+        );
+        
+        // Log bounty events
+        const totalSellerBounties = bountyResults.seller.reduce((sum, b) => sum + b.amount, 0);
+        const totalReferrerBounties = bountyResults.referrer.reduce((sum, b) => sum + b.amount, 0);
+        
+        if (totalSellerBounties > 0) {
+          console.log(`🎁 [${artistUsername}] Earned ${totalSellerBounties.toLocaleString()} $Phosphors in bounties!`);
+        }
+        if (totalReferrerBounties > 0) {
+          console.log(`🎁 Referrer earned ${totalReferrerBounties.toLocaleString()} $Phosphors from this sale!`);
+        }
+      }
+    } catch (bountyError) {
+      console.error('Bounty processing error (non-critical):', bountyError.message);
+      // Don't fail the purchase for bounty errors
+    }
+    
     // Log successful purchase
     await auditLog('PURCHASE_COMPLETED', {
       pieceId: id,
@@ -324,7 +364,7 @@ export default async function handler(req, res) {
       buyerUsername,
       artist: artistUsername,
       txHash: paymentTx,
-      amount: priceNumeric,
+      amount: totalPrice,
       ip: clientIP
     });
     
@@ -344,16 +384,31 @@ export default async function handler(req, res) {
       },
       payment: {
         txHash: paymentTx,
-        amount: priceNumeric,
+        total: totalPrice,
+        basePrice: basePrice,
+        protocolFee: protocolFee,
         currency: 'USDC',
         verified: true,
-        explorer: `${BLOCK_EXPLORER}/tx/${paymentTx}`
+        explorer: `${BLOCK_EXPLORER}/tx/${paymentTx}`,
+        feeNote: 'Protocol fee will be used to buy & burn $PHOS'
       },
       artistPayout: payoutTxHash ? {
         txHash: payoutTxHash,
         amount: artistPayout,
         recipient: artistWallet,
         explorer: `${BLOCK_EXPLORER}/tx/${payoutTxHash}`
+      } : null,
+      bounties: bountyResults && (bountyResults.seller.length > 0 || bountyResults.referrer.length > 0) ? {
+        seller: bountyResults.seller.length > 0 ? {
+          events: bountyResults.seller,
+          total_phos: bountyResults.seller.reduce((sum, b) => sum + b.amount, 0),
+          message: `🎁 ${artistUsername} earned bounty rewards!`
+        } : null,
+        referrer: bountyResults.referrer.length > 0 ? {
+          events: bountyResults.referrer,
+          total_phos: bountyResults.referrer.reduce((sum, b) => sum + b.amount, 0),
+          message: '🎁 Referrer earned bonus rewards!'
+        } : null
       } : null
     });
     

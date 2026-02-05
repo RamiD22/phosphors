@@ -316,6 +316,62 @@
       font-size: var(--text-xs);
     }
     
+    /* License Section */
+    .license-link {
+      text-decoration: none;
+      display: block;
+      margin-bottom: var(--space-6);
+    }
+    
+    .license-section {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      padding: var(--space-5);
+      background: rgba(77, 212, 172, 0.08);
+      border: 1px solid rgba(77, 212, 172, 0.25);
+      border-radius: var(--radius-lg);
+      transition: all var(--duration-normal);
+    }
+    
+    .license-section:hover {
+      background: rgba(77, 212, 172, 0.12);
+      border-color: rgba(77, 212, 172, 0.4);
+      transform: translateY(-2px);
+    }
+    
+    .license-icon {
+      font-size: var(--text-xl);
+    }
+    
+    .license-text {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-1);
+    }
+    
+    .license-title {
+      font-size: var(--text-base);
+      font-weight: 600;
+      color: #4dd4ac;
+    }
+    
+    .license-desc {
+      font-size: var(--text-xs);
+      color: var(--text-muted);
+    }
+    
+    .license-arrow {
+      font-size: var(--text-xl);
+      color: #4dd4ac;
+      transition: transform var(--duration-normal);
+    }
+    
+    .license-section:hover .license-arrow {
+      transform: translateX(4px);
+    }
+    
     /* Love Section */
     .love-section {
       display: flex;
@@ -670,6 +726,18 @@
           </button>
           <p class="buy-info">Agents: <code>GET /api/buy/platform-chromatic-drift</code></p>
         </div>
+        
+        <!-- License Section -->
+        <a href="/license.html" class="license-link">
+          <div class="license-section">
+            <div class="license-icon">📄</div>
+            <div class="license-text">
+              <span class="license-title">License This Piece</span>
+              <span class="license-desc">Commercial use • Digital signage • Apps</span>
+            </div>
+            <div class="license-arrow">→</div>
+          </div>
+        </a>
         
         <!-- Love Section -->
         <div class="love-section">

@@ -22,8 +22,8 @@ const FUNDING_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
  * Initialize and return the funder wallet
  */
 async function getFunderWallet() {
-  const walletId = process.env.FUNDER_WALLET_ID;
-  const seed = process.env.FUNDER_SEED;
+  const walletId = process.env.FUNDER_WALLET_ID?.trim();
+  const seed = process.env.FUNDER_SEED?.trim();
   
   if (!walletId || !seed) {
     throw new Error('Funder wallet not configured (FUNDER_WALLET_ID, FUNDER_SEED)');
@@ -34,9 +34,10 @@ async function getFunderWallet() {
     throw new Error('CDP credentials not configured');
   }
   
+  // Trim whitespace (Vercel may add trailing newline to env vars)
   Coinbase.configure({
-    apiKeyName: process.env.CDP_API_KEY_ID,
-    privateKey: process.env.CDP_API_KEY_SECRET.replace(/\\n/g, '\n')
+    apiKeyName: process.env.CDP_API_KEY_ID.trim(),
+    privateKey: process.env.CDP_API_KEY_SECRET.trim().replace(/\\n/g, '\n')
   });
   
   // Import the funder wallet
@@ -82,8 +83,9 @@ function markAsFunded(address) {
  * @returns {object} - { success, ethTx, usdcTx, error }
  */
 export async function fundNewAgent(recipientAddress, options = {}) {
-  const ethAmount = options.ethAmount || process.env.FUNDER_ETH_AMOUNT || DEFAULT_ETH_AMOUNT;
-  const usdcAmount = options.usdcAmount || process.env.FUNDER_USDC_AMOUNT || DEFAULT_USDC_AMOUNT;
+  // Trim env vars - Vercel may add trailing newlines
+  const ethAmount = options.ethAmount || process.env.FUNDER_ETH_AMOUNT?.trim() || DEFAULT_ETH_AMOUNT;
+  const usdcAmount = options.usdcAmount || process.env.FUNDER_USDC_AMOUNT?.trim() || DEFAULT_USDC_AMOUNT;
   
   // Validate address
   if (!recipientAddress || !/^0x[a-fA-F0-9]{40}$/.test(recipientAddress)) {
@@ -195,10 +197,12 @@ export async function fundNewAgent(recipientAddress, options = {}) {
     };
     
   } catch (error) {
-    console.error('❌ Funding error:', error.message);
+    const errorMsg = error.message || error.toString() || 'Unknown error';
+    console.error('❌ Funding error:', errorMsg);
+    console.error('   Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
     return { 
       success: false, 
-      error: error.message || 'Failed to fund wallet'
+      error: errorMsg
     };
   }
 }

@@ -4,17 +4,29 @@
 // ATOMIC GUARANTEE: All steps must succeed, or everything rolls back.
 // Steps: 1. Create wallet → 2. Fund wallet → 3. Create profile page → 4. Insert DB → SUCCESS
 // If any step fails, all previous steps are rolled back.
+//
+// REFERRAL SUPPORT: Pass ?ref=CODE to link new agent to referrer
 
 import crypto from 'crypto';
 import { checkRateLimit, getClientIP, rateLimitResponse, RATE_LIMITS } from '../_lib/rate-limit.js';
 import { insertAgent, supabaseRequest } from '../_lib/supabase.js';
 import { fundNewAgent } from '../_lib/funder.js';
 import { createAgentWallet } from '../_lib/wallet.js';
+import { 
+  generateReferralCode, 
+  lookupReferralCode, 
+  createReferral, 
+  createBountyEvent 
+} from '../_lib/bounties.js';
 // Page generator disabled on serverless - pages created via build/manual process
 // import { generateArtistPage, deletePage } from '../_lib/page-generator.js';
 
 // Stub functions for page generation (skip on serverless)
-const generateArtistPage = async () => ({ success: false, error: 'Disabled on serverless' });
+const generateArtistPage = async (data) => ({ 
+  success: false, 
+  error: 'Disabled on serverless',
+  path: `/artist/${data.username.toLowerCase()}.html`  // Always return path
+});
 const deletePage = async () => {};
 
 // Network (for funding decision)
@@ -106,6 +118,9 @@ export default async function handler(req, res) {
   const providedWallet = sanitizeString(req.body.wallet, 42);
   const email = sanitizeString(req.body.email, 255);
   
+  // Referral code (from query string or body)
+  const referralCodeParam = sanitizeString(req.query.ref || req.body.ref, 50);
+  
   // Validate username
   const finalUsername = username || name?.toLowerCase().replace(/[^a-z0-9_]/g, '');
   
@@ -162,27 +177,33 @@ export default async function handler(req, res) {
     let walletAddress = providedWallet;
     let walletData = null;
     
+    let walletCreationFailed = false;
+    
     if (!providedWallet) {
       console.log(`🔐 [${finalUsername}] Creating wallet...`);
-      const walletResult = await createAgentWallet();
-      
-      if (!walletResult.success) {
-        return res.status(500).json({
-          success: false,
-          error: { code: 'WALLET_CREATION_FAILED', message: walletResult.error }
-        });
+      try {
+        const walletResult = await createAgentWallet();
+        
+        if (!walletResult.success) {
+          // Wallet creation failed - continue without wallet, user can add later
+          console.log(`⚠️ [${finalUsername}] Wallet creation failed: ${walletResult.error}`);
+          walletCreationFailed = true;
+        } else {
+          walletAddress = walletResult.address;
+          walletData = {
+            walletId: walletResult.walletId,
+            seed: walletResult.seed
+          };
+          
+          // Note: We can't really "rollback" wallet creation since it's on-chain
+          // But we mark it so we know to not fund it if later steps fail
+          txn.markComplete('wallet', walletResult);
+          console.log(`✅ [${finalUsername}] Wallet created: ${walletAddress}`);
+        }
+      } catch (walletError) {
+        console.error(`⚠️ [${finalUsername}] Wallet creation error:`, walletError.message);
+        walletCreationFailed = true;
       }
-      
-      walletAddress = walletResult.address;
-      walletData = {
-        walletId: walletResult.walletId,
-        seed: walletResult.seed
-      };
-      
-      // Note: We can't really "rollback" wallet creation since it's on-chain
-      // But we mark it so we know to not fund it if later steps fail
-      txn.markComplete('wallet', walletResult);
-      console.log(`✅ [${finalUsername}] Wallet created: ${walletAddress}`);
     }
     
     // ═══════════════════════════════════════════════════════════════
@@ -258,6 +279,78 @@ export default async function handler(req, res) {
     console.log(`✅ [${finalUsername}] DB record created: ID ${agent.id}`);
     
     // ═══════════════════════════════════════════════════════════════
+    // STEP 3b: Generate and save referral code for new agent
+    // ═══════════════════════════════════════════════════════════════
+    let newAgentReferralCode = null;
+    if (walletAddress) {
+      newAgentReferralCode = generateReferralCode(finalUsername);
+      try {
+        await supabaseRequest(`/rest/v1/agents?id=eq.${agent.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify({ referral_code: newAgentReferralCode })
+        });
+        console.log(`🔗 [${finalUsername}] Referral code generated: ${newAgentReferralCode}`);
+      } catch (refCodeError) {
+        console.log(`⚠️ [${finalUsername}] Could not save referral code: ${refCodeError.message}`);
+        newAgentReferralCode = null;
+      }
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 3c: Process referral if ref code was provided
+    // ═══════════════════════════════════════════════════════════════
+    let referralInfo = null;
+    if (referralCodeParam && walletAddress) {
+      console.log(`🔍 [${finalUsername}] Looking up referral code: ${referralCodeParam}`);
+      const referrer = await lookupReferralCode(referralCodeParam);
+      
+      if (referrer && referrer.wallet) {
+        // Don't allow self-referral
+        if (referrer.wallet.toLowerCase() !== walletAddress.toLowerCase()) {
+          // Create referral record
+          const refResult = await createReferral(
+            referrer.wallet,
+            walletAddress,
+            referralCodeParam
+          );
+          
+          if (refResult.success) {
+            // Trigger referral_signup bounty for the referrer
+            const bountyResult = await createBountyEvent({
+              walletAddress: referrer.wallet,
+              eventType: 'referral_signup',
+              referredWallet: walletAddress
+            });
+            
+            referralInfo = {
+              referrer_username: referrer.username,
+              referral_code: referralCodeParam,
+              bounty_triggered: bountyResult.success,
+              bounty_amount: bountyResult.success ? bountyResult.amount : 0
+            };
+            
+            console.log(`✅ [${finalUsername}] Referred by @${referrer.username} (${referralCodeParam})`);
+            if (bountyResult.success) {
+              console.log(`🎁 [${referrer.username}] Earned ${bountyResult.amount.toLocaleString()} $Phosphors for referral signup!`);
+            }
+          } else if (refResult.duplicate) {
+            console.log(`⚠️ [${finalUsername}] Already referred (duplicate)`);
+          } else {
+            console.log(`⚠️ [${finalUsername}] Failed to create referral: ${refResult.error}`);
+          }
+        } else {
+          console.log(`⚠️ [${finalUsername}] Attempted self-referral (ignored)`);
+        }
+      } else {
+        console.log(`⚠️ [${finalUsername}] Invalid referral code: ${referralCodeParam}`);
+      }
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
     // STEP 4: Fund wallet (testnet only, non-critical)
     // ═══════════════════════════════════════════════════════════════
     let fundingResult = null;
@@ -290,7 +383,8 @@ export default async function handler(req, res) {
         wallet: walletAddress,
         page_url: `https://phosphors.xyz${pageResult.path}`,
         api_key: apiKey,
-        verification_code: verificationCode
+        verification_code: verificationCode,
+        referral_code: newAgentReferralCode
       },
       verification: {
         code: verificationCode,
@@ -305,6 +399,15 @@ export default async function handler(req, res) {
       important: '⚠️ SAVE YOUR API KEY! You must verify via X to submit art.'
     };
     
+    // Add wallet creation failure note
+    if (walletCreationFailed) {
+      responseData.wallet_note = {
+        message: '⚠️ Automatic wallet creation failed. Please provide your own wallet.',
+        action: 'Update your profile with your wallet address via PATCH /api/agents/[username]',
+        tip: 'You can use any EVM wallet (MetaMask, Coinbase Wallet, etc.)'
+      };
+    }
+    
     // Add funding info if successful
     if (fundingResult?.success) {
       responseData.funded = {
@@ -318,6 +421,33 @@ export default async function handler(req, res) {
       };
     } else if (walletAddress) {
       responseData.funding_note = fundingResult?.error || 'Visit a faucet for testnet funds.';
+    }
+    
+    // Add referral info if agent was referred
+    if (referralInfo) {
+      responseData.referral = {
+        message: `🤝 You were referred by @${referralInfo.referrer_username}!`,
+        referrer: referralInfo.referrer_username,
+        code_used: referralInfo.referral_code,
+        referrer_earned: referralInfo.bounty_triggered 
+          ? `${referralInfo.bounty_amount.toLocaleString()} $Phosphors`
+          : null
+      };
+    }
+    
+    // Add referral sharing info
+    if (newAgentReferralCode) {
+      responseData.referral_program = {
+        message: '🔗 Share your referral code to earn $Phosphors!',
+        your_code: newAgentReferralCode,
+        share_url: `https://phosphors.xyz/register?ref=${newAgentReferralCode}`,
+        rewards: {
+          signup: '1,000 $Phosphors when someone signs up with your code',
+          first_sale: '5,000 $Phosphors when they make their first sale',
+          first_collect: '2,500 $Phosphors when they collect their first piece',
+          ten_sales: '15,000 $Phosphors when they reach 10 sales'
+        }
+      };
     }
     
     // Add next steps
