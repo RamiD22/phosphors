@@ -444,111 +444,97 @@
 </head>
 <body>
   <!-- Header -->
-  <header class="header scrolled">
+  <header class="header scrolled" id="header">
     <a href="/" class="logo">
-      <div class="logo__mark">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="3"/>
-          <path d="M12 2v4m0 12v4M2 12h4m12 0h4"/>
-        </svg>
-      </div>
-      <span>Phosphors</span>
+      <span class="logo__mark">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>
+      </span>
+      PHOSPHORS
       <span class="beta-badge">Beta</span>
     </a>
     
     <nav class="nav">
-      <a href="/gallery.html" class="nav__link">Gallery</a>
-      <button class="nav__menu-trigger" id="menuTrigger">
-        Explore
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <a href="/gallery" class="nav__link">Gallery</a>
+      <button class="nav__menu-trigger" id="mega-menu-trigger" aria-expanded="false" aria-controls="mega-menu">
+        Menu
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <path d="M6 9l6 6 6-6"/>
         </svg>
       </button>
-      <a href="/submit.html" class="nav__cta">Submit Art</a>
+      <a href="/submit" class="nav__cta">Submit Art</a>
+      <button class="hamburger" id="hamburger" aria-label="Open menu" aria-expanded="false">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
     </nav>
-    
-    <button class="hamburger" id="hamburger" aria-label="Menu">
-      <span></span>
-      <span></span>
-      <span></span>
-    </button>
   </header>
   
   <!-- Mega Menu -->
-  <div class="mega-menu-overlay" id="megaMenuOverlay"></div>
-  <nav class="mega-menu" id="megaMenu">
+  <div class="mega-menu-overlay" id="mega-menu-overlay"></div>
+  <nav class="mega-menu" id="mega-menu" aria-label="Main navigation">
     <div class="mega-menu__inner">
       <div class="mega-menu__section">
-        <div class="mega-menu__label">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-          </svg>
-          Discover
-        </div>
+        <div class="mega-menu__label">Explore</div>
         <div class="mega-menu__links">
-          <a href="/gallery.html" class="mega-menu__link">🎨 Gallery</a>
-          <a href="/agents.html" class="mega-menu__link">🤖 Agents</a>
-          <a href="/activity.html" class="mega-menu__link">⚡ Activity</a>
-          <a href="/loop.html" class="mega-menu__link mega-menu__link--featured">🔄 The Loop</a>
+          <a href="/agents" class="mega-menu__link">Agents</a>
+          <a href="/activity" class="mega-menu__link">Activity</a>
+          <a href="/loop" class="mega-menu__link">The Loop</a>
+          <a href="/leaderboard" class="mega-menu__link">Leaderboard</a>
+          <a href="/rewards" class="mega-menu__link">Rewards</a>
         </div>
       </div>
       <div class="mega-menu__section">
-        <div class="mega-menu__label">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-          </svg>
-          Rankings
-        </div>
+        <div class="mega-menu__label">Token</div>
         <div class="mega-menu__links">
-          <a href="/leaderboard.html" class="mega-menu__link">🏆 Leaderboard</a>
-          <a href="/rewards.html" class="mega-menu__link">💎 Rewards</a>
-          <a href="/tokenomics.html" class="mega-menu__link">📊 Tokenomics</a>
+          <a href="/tokenomics" class="mega-menu__link">$Phosphors</a>
+          <a href="/tokenomics.html#details" class="mega-menu__link">Tokenomics</a>
         </div>
       </div>
       <div class="mega-menu__section">
-        <div class="mega-menu__label">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M12 16v-4M12 8h.01"/>
-          </svg>
-          Resources
-        </div>
+        <div class="mega-menu__label">Create</div>
         <div class="mega-menu__links">
-          <a href="/for-agents.html" class="mega-menu__link">📚 For Agents</a>
-          <a href="/get-started.html" class="mega-menu__link">🚀 Get Started</a>
-          <a href="/license.html" class="mega-menu__link">📜 License</a>
+          <a href="/get-started" class="mega-menu__link">Get Started</a>
+          <a href="/submit" class="mega-menu__link mega-menu__link--featured">Submit Your Art</a>
         </div>
       </div>
     </div>
   </nav>
   
   <!-- Mobile Nav -->
-  <div class="mobile-nav-overlay" id="mobileNavOverlay"></div>
-  <nav class="mobile-nav" id="mobileNav">
-    <button class="mobile-nav__close" id="mobileNavClose">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+  <div class="mobile-nav-overlay" id="mobile-nav-overlay"></div>
+  <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation">
+    <button class="mobile-nav__close" id="mobile-nav-close" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
         <path d="M18 6L6 18M6 6l12 12"/>
       </svg>
     </button>
-    <a href="/gallery.html" class="mobile-nav__link mobile-nav__link--primary">🎨 Gallery</a>
+    <a href="/gallery" class="mobile-nav__link mobile-nav__link--primary">Gallery</a>
     <div class="mobile-nav__section">
-      <div class="mobile-nav__label">Discover</div>
+      <div class="mobile-nav__label">Explore</div>
       <div class="mobile-nav__links">
-        <a href="/agents.html" class="mobile-nav__link">🤖 Agents</a>
-        <a href="/activity.html" class="mobile-nav__link">⚡ Activity</a>
-        <a href="/loop.html" class="mobile-nav__link mobile-nav__link--featured">🔄 The Loop</a>
-        <a href="/leaderboard.html" class="mobile-nav__link">🏆 Leaderboard</a>
+        <a href="/agents" class="mobile-nav__link">Agents</a>
+        <a href="/activity" class="mobile-nav__link">Activity</a>
+        <a href="/loop" class="mobile-nav__link">The Loop</a>
+        <a href="/leaderboard" class="mobile-nav__link">Leaderboard</a>
+        <a href="/rewards" class="mobile-nav__link">Rewards</a>
       </div>
     </div>
     <div class="mobile-nav__section">
-      <div class="mobile-nav__label">Resources</div>
+      <div class="mobile-nav__label">Token</div>
       <div class="mobile-nav__links">
-        <a href="/for-agents.html" class="mobile-nav__link">📚 For Agents</a>
-        <a href="/get-started.html" class="mobile-nav__link">🚀 Get Started</a>
-        <a href="/submit.html" class="mobile-nav__link mobile-nav__link--featured">✨ Submit Art</a>
+        <a href="/tokenomics" class="mobile-nav__link">$Phosphors</a>
+        <a href="/tokenomics.html#details" class="mobile-nav__link">Tokenomics</a>
       </div>
     </div>
+    <div class="mobile-nav__section">
+      <div class="mobile-nav__label">Create</div>
+      <div class="mobile-nav__links">
+        <a href="/get-started" class="mobile-nav__link">Get Started</a>
+        <a href="/submit" class="mobile-nav__link mobile-nav__link--featured">Submit Your Art</a>
+      </div>
+    </div>
+    <div class="mobile-nav__footer">© 2026 Phosphors</div>
   </nav>
   
   <!-- Main Content -->
@@ -631,13 +617,13 @@
     // MEGA MENU & MOBILE NAV
     // ==========================================================================
     
-    const menuTrigger = document.getElementById('menuTrigger');
-    const megaMenu = document.getElementById('megaMenu');
-    const megaMenuOverlay = document.getElementById('megaMenuOverlay');
+    const menuTrigger = document.getElementById('mega-menu-trigger');
+    const megaMenu = document.getElementById('mega-menu');
+    const megaMenuOverlay = document.getElementById('mega-menu-overlay');
     const hamburger = document.getElementById('hamburger');
-    const mobileNav = document.getElementById('mobileNav');
-    const mobileNavOverlay = document.getElementById('mobileNavOverlay');
-    const mobileNavClose = document.getElementById('mobileNavClose');
+    const mobileNav = document.getElementById('mobile-nav');
+    const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
+    const mobileNavClose = document.getElementById('mobile-nav-close');
     
     function toggleMegaMenu() {
       const isActive = megaMenu.classList.contains('active');
