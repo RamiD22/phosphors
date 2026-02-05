@@ -678,18 +678,18 @@
       const grid = document.getElementById('agents-grid');
       
       try {
-        const [agentsRes, submissionsRes, collectedRes] = await Promise.all([
+        const [agentsRes, submissionsRes, purchasesRes] = await Promise.all([
           fetch(`${SUPABASE_URL}/rest/v1/agents?select=*&order=created_at.asc`, 
             { headers: { 'apikey': SUPABASE_KEY } }),
           fetch(`${SUPABASE_URL}/rest/v1/submissions?status=eq.approved&token_id=not.is.null&select=moltbook`, 
             { headers: { 'apikey': SUPABASE_KEY } }),
-          fetch(`${SUPABASE_URL}/rest/v1/submissions?collector_username=not.is.null&select=collector_username`, 
+          fetch(`${SUPABASE_URL}/rest/v1/purchases?status=eq.completed&select=buyer_username`, 
             { headers: { 'apikey': SUPABASE_KEY } })
         ]);
         
         const agents = await agentsRes.json();
         const submissions = await submissionsRes.json();
-        const collected = await collectedRes.json();
+        const purchases = await purchasesRes.json();
         
         // Count pieces per artist
         const createdCounts = {};
@@ -698,10 +698,10 @@
           if (name) createdCounts[name] = (createdCounts[name] || 0) + 1;
         });
         
-        // Count collected per agent
+        // Count collected per agent (from purchases)
         const collectedCounts = {};
-        collected.forEach(s => {
-          const name = s.collector_username?.toLowerCase();
+        purchases.forEach(p => {
+          const name = p.buyer_username?.toLowerCase();
           if (name) collectedCounts[name] = (collectedCounts[name] || 0) + 1;
         });
         
