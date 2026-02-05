@@ -305,14 +305,16 @@
 }
 
 .mega-menu__link-icon {
-  width: 18px;
-  height: 18px;
-  opacity: 0.5;
-  transition: opacity var(--duration-normal, 0.3s);
+  width: 20px;
+  height: 20px;
+  opacity: 0.7;
+  stroke: var(--accent, #b88cff);
+  transition: all var(--duration-normal, 0.3s);
 }
 
 .mega-menu__link:hover .mega-menu__link-icon {
-  opacity: 0.8;
+  opacity: 1;
+  stroke: var(--cyan, #6ee7e7);
 }
 
 /* Featured link in mega menu */
@@ -483,6 +485,19 @@
 .mobile-nav__link:hover {
   background: rgba(255, 255, 255, 0.04);
   color: var(--text-primary, #f5f5f7);
+}
+
+.mobile-nav__icon {
+  width: 20px;
+  height: 20px;
+  opacity: 0.6;
+  stroke: var(--accent, #b88cff);
+  flex-shrink: 0;
+}
+
+.mobile-nav__link:hover .mobile-nav__icon {
+  opacity: 1;
+  stroke: var(--cyan, #6ee7e7);
 }
 
 .mobile-nav__link--primary {
