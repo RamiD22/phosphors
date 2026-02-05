@@ -74,7 +74,7 @@ const MEGA_MENU_HTML = `
             <circle cx="12" cy="12" r="10"/>
             <path d="M12 6v12M9 9h6M9 15h6"/>
           </svg>
-          $PHOS
+          $Phosphors
         </a>
         <a href="/tokenomics" class="mega-menu__link">
           <svg class="mega-menu__link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -153,7 +153,7 @@ const MOBILE_NAV_HTML = `
     <div class="mobile-nav__links">
       <a href="/token" class="mobile-nav__link">
         <svg class="mobile-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M9 9h6M9 15h6"/></svg>
-        $PHOS
+        $Phosphors
       </a>
       <a href="/tokenomics" class="mobile-nav__link">
         <svg class="mobile-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
