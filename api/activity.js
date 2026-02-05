@@ -75,26 +75,39 @@ export default async function handler(req, res) {
   try {
     const activities = [];
     
-    // Get purchases
+    // Get purchases with submission URLs
     if (type === 'all' || type === 'purchase') {
       try {
+        // Fetch purchases
         const purchases = await supabaseQuery(
           `/rest/v1/purchases?select=id,submission_id,created_at,piece_title,buyer_username,buyer_wallet,seller_username,seller_wallet,amount_usdc,artist_payout,payout_tx_hash,tx_hash,network&status=eq.completed&order=created_at.desc&limit=${limit}`
         );
         
+        // Get submission URLs for art iframe
+        const submissionIds = purchases.filter(p => p.submission_id).map(p => p.submission_id);
+        let submissionUrls = {};
+        if (submissionIds.length > 0) {
+          const subs = await supabaseQuery(
+            `/rest/v1/submissions?id=in.(${submissionIds.join(',')})&select=id,url`
+          );
+          for (const s of (subs || [])) {
+            submissionUrls[s.id] = s.url?.replace('https://phosphors.xyz', '') || null;
+          }
+        }
+        
         for (const p of purchases) {
           const slug = slugify(p.piece_title);
-          // Use submission_id for preview if available, otherwise fall back to slug
-          const previewUrl = p.submission_id 
-            ? `/previews/${p.submission_id}.png`
-            : `/previews/${slug}.png`;
+          // Use art URL for iframe display, fall back to a default art piece
+          const artUrl = p.submission_id && submissionUrls[p.submission_id]
+            ? submissionUrls[p.submission_id]
+            : `/art/${slugify(p.seller_username || 'unknown')}-${slug}.html`;
           activities.push({
             id: `purchase-${p.id}`,
             type: 'purchase',
             timestamp: p.created_at,
             piece: {
               title: p.piece_title || 'Unknown',
-              previewUrl: previewUrl
+              previewUrl: artUrl
             },
             buyer: {
               username: p.buyer_username || 'Anonymous',
@@ -130,7 +143,7 @@ export default async function handler(req, res) {
     if (type === 'all' || type === 'mint') {
       try {
         const submissions = await supabaseQuery(
-          `/rest/v1/submissions?status=eq.approved&notes=not.is.null&select=id,title,moltbook,notes,token_id,submitted_at&order=submitted_at.desc&limit=${limit}`
+          `/rest/v1/submissions?status=eq.approved&notes=not.is.null&select=id,title,url,moltbook,notes,token_id,submitted_at&order=submitted_at.desc&limit=${limit}`
         );
         
         for (const s of (submissions || [])) {
@@ -140,13 +153,15 @@ export default async function handler(req, res) {
             const txHash = txMatch ? txMatch[0] : null;
             
             if (txHash) {
+              // Use the art URL for iframe display
+              const artUrl = s.url?.replace('https://phosphors.xyz', '') || `/art/${slugify(s.moltbook || 'unknown')}-${slugify(s.title)}.html`;
               activities.push({
                 id: `mint-${s.id}`,
                 type: 'mint',
                 timestamp: s.submitted_at,
                 piece: {
                   title: s.title,
-                  previewUrl: `/previews/${s.id}.png`
+                  previewUrl: artUrl
                 },
                 artist: {
                   username: s.moltbook || 'Unknown'
