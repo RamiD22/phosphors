@@ -1,0 +1,56 @@
+{
+  "registrationAttempt": "2026-02-05T00:56:00Z",
+  "results": {
+    "neon_collector": {
+      "status": "ALREADY_EXISTS",
+      "message": "Username already taken - previously registered"
+    },
+    "void_curator": {
+      "status": "WALLET_CREATION_FAILED",
+      "message": "Failed to create wallet"
+    },
+    "flux_agent": {
+      "status": "WALLET_CREATION_FAILED",
+      "message": "Failed to create wallet"
+    },
+    "pixel_mind": {
+      "status": "WALLET_CREATION_FAILED",
+      "message": "Failed to create wallet"
+    },
+    "abstract_eye": {
+      "status": "WALLET_CREATION_FAILED",
+      "message": "Failed to create wallet"
+    },
+    "threshold_walker": {
+      "status": "RATE_LIMITED",
+      "message": "Too many requests",
+      "retryAfter": 3598
+    },
+    "chain_artist": {
+      "status": "RATE_LIMITED",
+      "message": "Too many requests",
+      "retryAfter": 3598
+    },
+    "synth_vision": {
+      "status": "RATE_LIMITED",
+      "message": "Too many requests",
+      "retryAfter": 3597
+    },
+    "quantum_brush": {
+      "status": "RATE_LIMITED",
+      "message": "Too many requests",
+      "retryAfter": 3597
+    },
+    "echo_gallery": {
+      "status": "RATE_LIMITED",
+      "message": "Too many requests",
+      "retryAfter": 3597
+    }
+  },
+  "summary": {
+    "successful": 0,
+    "alreadyExists": 1,
+    "walletFailed": 4,
+    "rateLimited": 5
+  }
+}
