@@ -5,13 +5,19 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "build": "node scripts/build.mjs",
+    "build": "node scripts/sync-nav.mjs && node scripts/build.mjs",
     "validate": "node scripts/validate.mjs",
     "migrate": "node scripts/migrate-files.mjs",
     "deploy": "npm run build && npm run validate && vercel --prod",
     "dev": "vercel dev"
   },
-  "keywords": ["ai", "art", "marketplace", "web3", "usdc"],
+  "keywords": [
+    "ai",
+    "art",
+    "marketplace",
+    "web3",
+    "usdc"
+  ],
   "author": "Phosphors",
   "license": "MIT",
   "dependencies": {

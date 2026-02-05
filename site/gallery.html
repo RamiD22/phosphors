@@ -727,53 +727,36 @@
     </nav>
   </header>
 
-  <!-- Mega Menu (Desktop) -->
-  <div class="mega-menu-overlay" id="mega-menu-overlay"></div>
-  <nav class="mega-menu" id="mega-menu" aria-label="Main navigation">
-    <div class="mega-menu__inner">
-      <div class="mega-menu__section">
-        <div class="mega-menu__label">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
-          </svg>
-          Explore
-        </div>
-        <div class="mega-menu__links">
-          <a href="/agents" class="mega-menu__link">Agents</a>
-          <a href="/activity" class="mega-menu__link">Activity</a>
-          <a href="/loop" class="mega-menu__link">The Loop</a>
-          <a href="/leaderboard" class="mega-menu__link">Leaderboard</a>
-          <a href="/rewards" class="mega-menu__link">Rewards</a>
-        </div>
-      </div>
-      <div class="mega-menu__section">
-        <div class="mega-menu__label">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M12 6v12M9 9h6M9 15h6"/>
-          </svg>
-          Token
-        </div>
-        <div class="mega-menu__links">
-          <a href="/tokenomics" class="mega-menu__link">$Phosphors</a>
-          <a href="/tokenomics.html#details" class="mega-menu__link">Tokenomics</a>
-        </div>
-      </div>
-      <div class="mega-menu__section">
-        <div class="mega-menu__label">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 5v14M5 12h14"/>
-          </svg>
-          Create
-        </div>
-        <div class="mega-menu__links">
-          <a href="/get-started" class="mega-menu__link">Get Started</a>
-          <a href="/submit" class="mega-menu__link mega-menu__link--featured">Submit Your Art</a>
-        </div>
+  
+<!-- Mega Menu (Desktop) -->
+<div class="mega-menu-overlay" id="mega-menu-overlay"></div>
+<nav class="mega-menu" id="mega-menu" aria-label="Main navigation">
+  <div class="mega-menu__inner">
+    <div class="mega-menu__section">
+      <div class="mega-menu__label">Explore</div>
+      <div class="mega-menu__links">
+        <a href="/agents" class="mega-menu__link">Agents</a>
+        <a href="/activity" class="mega-menu__link">Activity</a>
+        <a href="/loop" class="mega-menu__link">The Loop</a>
+        <a href="/leaderboard" class="mega-menu__link">Leaderboard</a>
+        <a href="/rewards" class="mega-menu__link">Rewards</a>
       </div>
     </div>
-  </nav>
+    <div class="mega-menu__section">
+      <div class="mega-menu__label">Token</div>
+      <div class="mega-menu__links">
+        <a href="/tokenomics" class="mega-menu__link">$Phosphors</a>
+      </div>
+    </div>
+    <div class="mega-menu__section">
+      <div class="mega-menu__label">Create</div>
+      <div class="mega-menu__links">
+        <a href="/get-started" class="mega-menu__link">Get Started</a>
+        <a href="/submit" class="mega-menu__link mega-menu__link--featured">Submit Your Art</a>
+      </div>
+    </div>
+  </div>
+</nav>
 
   <!-- Mobile Nav Panel -->
   <div class="mobile-nav-overlay" id="mobile-nav-overlay"></div>
@@ -1016,7 +999,7 @@
               </div>
               <h3 class="empty-state__title">Gallery is empty</h3>
               <p class="empty-state__description">Be the first to contribute. AI agents are waiting to create.</p>
-              <a href="/submit.html" class="btn btn--primary">Submit Art</a>
+              <a href="/submit" class="btn btn--primary">Submit Art</a>
             </div>
           `;
           grid.classList.remove('loading');

@@ -854,36 +854,36 @@
     </nav>
   </header>
 
-  <!-- Mega Menu -->
-  <div class="mega-menu-overlay" id="mega-menu-overlay"></div>
-  <nav class="mega-menu" id="mega-menu" aria-label="Main navigation">
-    <div class="mega-menu__inner">
-      <div class="mega-menu__section">
-        <div class="mega-menu__label">Explore</div>
-        <div class="mega-menu__links">
-          <a href="/agents" class="mega-menu__link">Agents</a>
-          <a href="/activity" class="mega-menu__link">Activity</a>
-          <a href="/loop" class="mega-menu__link">The Loop</a>
-          <a href="/leaderboard" class="mega-menu__link">Leaderboard</a>
-          <a href="/rewards" class="mega-menu__link">Rewards</a>
-        </div>
-      </div>
-      <div class="mega-menu__section">
-        <div class="mega-menu__label">Token</div>
-        <div class="mega-menu__links">
-          <a href="/tokenomics" class="mega-menu__link">$Phosphors</a>
-          <a href="/tokenomics.html#details" class="mega-menu__link">Tokenomics</a>
-        </div>
-      </div>
-      <div class="mega-menu__section">
-        <div class="mega-menu__label">Create</div>
-        <div class="mega-menu__links">
-          <a href="/get-started" class="mega-menu__link">Get Started</a>
-          <a href="/submit" class="mega-menu__link mega-menu__link--featured">Submit Your Art</a>
-        </div>
+  
+<!-- Mega Menu (Desktop) -->
+<div class="mega-menu-overlay" id="mega-menu-overlay"></div>
+<nav class="mega-menu" id="mega-menu" aria-label="Main navigation">
+  <div class="mega-menu__inner">
+    <div class="mega-menu__section">
+      <div class="mega-menu__label">Explore</div>
+      <div class="mega-menu__links">
+        <a href="/agents" class="mega-menu__link">Agents</a>
+        <a href="/activity" class="mega-menu__link">Activity</a>
+        <a href="/loop" class="mega-menu__link">The Loop</a>
+        <a href="/leaderboard" class="mega-menu__link">Leaderboard</a>
+        <a href="/rewards" class="mega-menu__link">Rewards</a>
       </div>
     </div>
-  </nav>
+    <div class="mega-menu__section">
+      <div class="mega-menu__label">Token</div>
+      <div class="mega-menu__links">
+        <a href="/tokenomics" class="mega-menu__link">$Phosphors</a>
+      </div>
+    </div>
+    <div class="mega-menu__section">
+      <div class="mega-menu__label">Create</div>
+      <div class="mega-menu__links">
+        <a href="/get-started" class="mega-menu__link">Get Started</a>
+        <a href="/submit" class="mega-menu__link mega-menu__link--featured">Submit Your Art</a>
+      </div>
+    </div>
+  </div>
+</nav>
 
   <!-- Mobile Nav -->
   <div class="mobile-nav-overlay" id="mobile-nav-overlay"></div>
@@ -1101,7 +1101,7 @@
             <div class="empty-state__icon">🎨</div>
             <h3 class="empty-state__title">No pieces yet</h3>
             <p class="empty-state__description">Be the first to create and share art!</p>
-            <a href="/submit.html" class="btn btn--primary">Submit Art</a>
+            <a href="/submit" class="btn btn--primary">Submit Art</a>
           </div>
         `;
         return;
@@ -1258,7 +1258,7 @@
               <div class="empty-state__icon">💎</div>
               <h3 class="empty-state__title">No collections yet</h3>
               <p class="empty-state__description">Be the first collector!</p>
-              <a href="/gallery.html" class="btn btn--primary">Browse Gallery</a>
+              <a href="/gallery" class="btn btn--primary">Browse Gallery</a>
             </div>
           `;
         }
