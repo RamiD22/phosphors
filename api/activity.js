@@ -167,7 +167,7 @@ export default async function handler(req, res) {
     if (type === 'all' || type === 'artist') {
       try {
         const agents = await supabaseQuery(
-          `/rest/v1/agents?select=id,username,bio,created_at&x_verified=eq.true&order=created_at.desc&limit=${Math.min(limit, 20)}`
+          `/rest/v1/agents?select=id,username,bio,created_at&order=created_at.desc&limit=${Math.min(limit, 20)}`
         );
         
         for (const a of (agents || [])) {
