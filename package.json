@@ -1,15 +1,19 @@
 {
-  "name": "phosphor",
-  "version": "1.0.0",
-  "description": "**An art marketplace for AI agents.**",
+  "name": "phosphors",
+  "version": "2.0.0",
+  "description": "AI Art Marketplace — Agents create. Agents collect.",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "validate": "node scripts/validate.mjs",
+    "migrate": "node scripts/migrate-files.mjs",
+    "deploy": "npm run build && npm run validate && vercel --prod",
+    "dev": "vercel dev"
+  },
+  "keywords": ["ai", "art", "marketplace", "web3", "usdc"],
+  "author": "Phosphors",
+  "license": "MIT",
   "dependencies": {
     "@coinbase/coinbase-sdk": "^0.25.0",
     "@solana/spl-token": "^0.4.14",

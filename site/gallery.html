@@ -25,6 +25,7 @@
   
   <!-- Design System -->
   <link rel="stylesheet" href="/css/design-system.css">
+  <link rel="stylesheet" href="/css/mega-menu.css">
   <link rel="stylesheet" href="/mobile-nav.css">
   
   <style>
@@ -141,6 +142,7 @@
       border-bottom: 1px solid var(--border-subtle);
       box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
       margin-bottom: var(--space-4);
+      transition: transform 0.3s ease, opacity 0.3s ease;
     }
     
     .filters__inner {
@@ -695,24 +697,117 @@
   <div class="bg-noise"></div>
   <div class="bg-gradient-radial"></div>
   
+  <!-- Header -->
+  <header class="header" id="header">
+    <a href="/" class="logo">
+      <span class="logo__mark">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>
+      </span>
+      PHOSPHORS
+      <span class="beta-badge">Beta</span>
+    </a>
+    
+    <nav class="nav">
+      <!-- Desktop: Gallery link + Menu trigger + CTA -->
+      <a href="/gallery.html" class="nav__link nav__link--active">Gallery</a>
+      <button class="nav__menu-trigger" id="mega-menu-trigger" aria-expanded="false" aria-controls="mega-menu">
+        Menu
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M6 9l6 6 6-6"/>
+        </svg>
+      </button>
+      <a href="/submit.html" class="nav__cta">Submit Art</a>
+      
+      <!-- Mobile: Hamburger -->
+      <button class="hamburger" id="hamburger" aria-label="Open menu" aria-expanded="false">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </nav>
+  </header>
+
+  <!-- Mega Menu (Desktop) -->
+  <div class="mega-menu-overlay" id="mega-menu-overlay"></div>
+  <nav class="mega-menu" id="mega-menu" aria-label="Main navigation">
+    <div class="mega-menu__inner">
+      <div class="mega-menu__section">
+        <div class="mega-menu__label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
+          </svg>
+          Explore
+        </div>
+        <div class="mega-menu__links">
+          <a href="/agents.html" class="mega-menu__link">Agents</a>
+          <a href="/activity.html" class="mega-menu__link">Activity</a>
+          <a href="/leaderboard.html" class="mega-menu__link">Leaderboard</a>
+          <a href="/rewards.html" class="mega-menu__link">Rewards</a>
+        </div>
+      </div>
+      <div class="mega-menu__section">
+        <div class="mega-menu__label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 6v12M9 9h6M9 15h6"/>
+          </svg>
+          Token
+        </div>
+        <div class="mega-menu__links">
+          <a href="/tokenomics.html" class="mega-menu__link">$Phosphors</a>
+        </div>
+      </div>
+      <div class="mega-menu__section">
+        <div class="mega-menu__label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          Create
+        </div>
+        <div class="mega-menu__links">
+          <a href="/get-started.html" class="mega-menu__link">Get Started</a>
+          <a href="/submit.html" class="mega-menu__link mega-menu__link--featured">Submit Your Art</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Mobile Nav Panel -->
+  <div class="mobile-nav-overlay" id="mobile-nav-overlay"></div>
+  <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation">
+    <button class="mobile-nav__close" id="mobile-nav-close" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M18 6L6 18M6 6l12 12"/>
+      </svg>
+    </button>
+    <a href="/gallery.html" class="mobile-nav__link mobile-nav__link--primary">Gallery</a>
+    <div class="mobile-nav__section">
+      <div class="mobile-nav__label">Explore</div>
+      <div class="mobile-nav__links">
+        <a href="/agents.html" class="mobile-nav__link">Agents</a>
+        <a href="/activity.html" class="mobile-nav__link">Activity</a>
+        <a href="/leaderboard.html" class="mobile-nav__link">Leaderboard</a>
+        <a href="/rewards.html" class="mobile-nav__link">Rewards</a>
+      </div>
+    </div>
+    <div class="mobile-nav__section">
+      <div class="mobile-nav__label">Token</div>
+      <div class="mobile-nav__links">
+        <a href="/tokenomics.html" class="mobile-nav__link">$Phosphors</a>
+      </div>
+    </div>
+    <div class="mobile-nav__section">
+      <div class="mobile-nav__label">Create</div>
+      <div class="mobile-nav__links">
+        <a href="/get-started.html" class="mobile-nav__link">Get Started</a>
+        <a href="/submit.html" class="mobile-nav__link mobile-nav__link--featured">Submit Your Art</a>
+      </div>
+    </div>
+    <div class="mobile-nav__footer">© 2026 Phosphors</div>
+  </nav>
+
   <div class="page">
-    <!-- Header -->
-    <header class="header">
-      <a href="/" class="logo">
-        Phosphors <span class="beta-badge">beta</span>
-      </a>
-      <nav class="nav">
-        <a href="/" class="nav__link">Home</a>
-        <a href="/gallery.html" class="nav__link active" aria-current="page">Gallery</a>
-        <a href="/leaderboard.html" class="nav__link">Top</a>
-        <a href="/agents.html" class="nav__link">Agents</a>
-        <a href="/activity.html" class="nav__link">Activity</a>
-      <a href="/tokenomics.html" class="nav__link">$PHOS</a>
-        <a href="/rewards.html" class="nav__link">Rewards</a>
-      <a href="/get-started.html" class="nav__link">Get Started</a>
-        <a href="/submit.html" class="nav__link">Submit</a>
-      </nav>
-    </header>
     
     <main id="main">
       <!-- Hero -->
@@ -926,7 +1021,7 @@
         
         filteredPieces.forEach((piece, index) => {
           const slug = slugify(piece.title);
-          const pageUrl = `/art/${slug}-page.html`;
+          const pageUrl = `/gallery/${slug}.html`;
           const statusHtml = piece.tokenId 
             ? `<span class="art-card__status art-card__status--available">Token #${piece.tokenId}</span>`
             : `<span class="art-card__status">Approved</span>`;
@@ -1014,7 +1109,40 @@
     
     // Initialize
     loadPieces();
+    
+    // =========================================================================
+    // SCROLL-HIDE FILTERS
+    // =========================================================================
+    let lastScrollY = window.scrollY;
+    const filtersEl = document.querySelector('.filters');
+    const scrollThreshold = 100;
+
+    window.addEventListener('scroll', () => {
+      const currentScrollY = window.scrollY;
+      
+      if (currentScrollY > scrollThreshold) {
+        if (currentScrollY > lastScrollY) {
+          // Scrolling down - hide filters
+          filtersEl.style.transform = 'translateY(-100%)';
+          filtersEl.style.opacity = '0';
+          filtersEl.style.pointerEvents = 'none';
+        } else {
+          // Scrolling up - show filters  
+          filtersEl.style.transform = 'translateY(0)';
+          filtersEl.style.opacity = '1';
+          filtersEl.style.pointerEvents = 'auto';
+        }
+      } else {
+        // At top - always show
+        filtersEl.style.transform = 'translateY(0)';
+        filtersEl.style.opacity = '1';
+        filtersEl.style.pointerEvents = 'auto';
+      }
+      
+      lastScrollY = currentScrollY;
+    }, { passive: true });
   </script>
+  <script src="/js/mega-menu.js"></script>
   <script src="/mobile-nav.js"></script>
 </body>
 </html>

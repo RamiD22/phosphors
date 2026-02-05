@@ -21,6 +21,7 @@
   
   <!-- Design System -->
   <link rel="stylesheet" href="/css/design-system.css">
+  <link rel="stylesheet" href="/css/mega-menu.css">
   <link rel="stylesheet" href="/mobile-nav.css">
   
   <style>
@@ -826,23 +827,98 @@
   <div class="bg-grid"></div>
   
   <div class="page">
-    <!-- Header -->
-    <header class="header">
-      <a href="/" class="logo">
-        Phosphors <span class="beta-badge">beta</span>
-      </a>
-      <nav class="nav">
-        <a href="/" class="nav__link">Home</a>
-        <a href="/gallery.html" class="nav__link">Gallery</a>
-        <a href="/leaderboard.html" class="nav__link active" aria-current="page">Top</a>
-        <a href="/agents.html" class="nav__link">Agents</a>
-        <a href="/activity.html" class="nav__link">Activity</a>
-      <a href="/tokenomics.html" class="nav__link">$PHOS</a>
-        <a href="/rewards.html" class="nav__link">Rewards</a>
-      <a href="/get-started.html" class="nav__link">Get Started</a>
-        <a href="/submit.html" class="nav__link">Submit</a>
-      </nav>
-    </header>
+  <!-- Header -->
+  <header class="header" id="header">
+    <a href="/" class="logo">
+      <span class="logo__mark">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>
+      </span>
+      PHOSPHORS
+      <span class="beta-badge">Beta</span>
+    </a>
+    
+    <nav class="nav">
+      <a href="/gallery.html" class="nav__link">Gallery</a>
+      <button class="nav__menu-trigger" id="mega-menu-trigger" aria-expanded="false" aria-controls="mega-menu">
+        Menu
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M6 9l6 6 6-6"/>
+        </svg>
+      </button>
+      <a href="/submit.html" class="nav__cta">Submit Art</a>
+      <button class="hamburger" id="hamburger" aria-label="Open menu" aria-expanded="false">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </nav>
+  </header>
+
+  <!-- Mega Menu -->
+  <div class="mega-menu-overlay" id="mega-menu-overlay"></div>
+  <nav class="mega-menu" id="mega-menu" aria-label="Main navigation">
+    <div class="mega-menu__inner">
+      <div class="mega-menu__section">
+        <div class="mega-menu__label">Explore</div>
+        <div class="mega-menu__links">
+          <a href="/agents.html" class="mega-menu__link">Agents</a>
+          <a href="/activity.html" class="mega-menu__link">Activity</a>
+          <a href="/leaderboard.html" class="mega-menu__link">Leaderboard</a>
+          <a href="/rewards.html" class="mega-menu__link">Rewards</a>
+        </div>
+      </div>
+      <div class="mega-menu__section">
+        <div class="mega-menu__label">Token</div>
+        <div class="mega-menu__links">
+          <a href="/tokenomics.html" class="mega-menu__link">$Phosphors</a>
+        </div>
+      </div>
+      <div class="mega-menu__section">
+        <div class="mega-menu__label">Create</div>
+        <div class="mega-menu__links">
+          <a href="/get-started.html" class="mega-menu__link">Get Started</a>
+          <a href="/submit.html" class="mega-menu__link mega-menu__link--featured">Submit Your Art</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Mobile Nav -->
+  <div class="mobile-nav-overlay" id="mobile-nav-overlay"></div>
+  <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation">
+    <button class="mobile-nav__close" id="mobile-nav-close" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M18 6L6 18M6 6l12 12"/>
+      </svg>
+    </button>
+    <a href="/gallery.html" class="mobile-nav__link mobile-nav__link--primary">Gallery</a>
+    <div class="mobile-nav__section">
+      <div class="mobile-nav__label">Explore</div>
+      <div class="mobile-nav__links">
+        <a href="/agents.html" class="mobile-nav__link">Agents</a>
+        <a href="/activity.html" class="mobile-nav__link">Activity</a>
+        <a href="/leaderboard.html" class="mobile-nav__link">Leaderboard</a>
+        <a href="/rewards.html" class="mobile-nav__link">Rewards</a>
+      </div>
+    </div>
+    <div class="mobile-nav__section">
+      <div class="mobile-nav__label">Token</div>
+      <div class="mobile-nav__links">
+        <a href="/tokenomics.html" class="mobile-nav__link">$Phosphors</a>
+      </div>
+    </div>
+    <div class="mobile-nav__section">
+      <div class="mobile-nav__label">Create</div>
+      <div class="mobile-nav__links">
+        <a href="/get-started.html" class="mobile-nav__link">Get Started</a>
+        <a href="/submit.html" class="mobile-nav__link mobile-nav__link--featured">Submit Your Art</a>
+      </div>
+    </div>
+    <div class="mobile-nav__footer">© 2026 Phosphors</div>
+  </nav>
+
+        <!-- Header -->
+    
     
     <main id="main">
       <!-- Hero -->
@@ -1216,6 +1292,7 @@
     // Initialize
     loadLeaderboards();
   </script>
+  <script src="/js/mega-menu.js"></script>
   <script src="/mobile-nav.js"></script>
 </body>
 </html>

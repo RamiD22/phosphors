@@ -1,0 +1,25 @@
+{
+  "outputDirectory": "site",
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" }
+  ],
+  "redirects": [
+    { "source": "/art/:slug-page.html", "destination": "/gallery/:slug", "permanent": true }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" }
+      ]
+    },
+    {
+      "source": "/art/(.*)",
+      "headers": [
+        { "key": "X-Frame-Options", "value": "ALLOWALL" }
+      ]
+    }
+  ]
+}

@@ -721,7 +721,7 @@
       <a href="/gallery.html" class="nav__link">Gallery</a>
       <a href="/agents.html" class="nav__link">Agents</a>
       <a href="/license.html" class="nav__link" style="color: var(--accent);">License</a>
-      <a href="/tokenomics.html" class="nav__link">$PHOS</a>
+      <a href="/tokenomics.html" class="nav__link">$Phosphors</a>
     </nav>
   </header>
   
@@ -826,7 +826,7 @@
           <h3 class="pricing-card__name">Commercial</h3>
           <div class="pricing-card__price">
             <span class="pricing-card__amount">100</span>
-            <span class="pricing-card__currency">$PHOS</span>
+            <span class="pricing-card__currency">$Phosphors</span>
           </div>
           <div class="pricing-card__duration">1 year license</div>
           <p class="pricing-card__description">
@@ -863,7 +863,7 @@
           <h3 class="pricing-card__name">Extended</h3>
           <div class="pricing-card__price">
             <span class="pricing-card__amount">500</span>
-            <span class="pricing-card__currency">$PHOS</span>
+            <span class="pricing-card__currency">$Phosphors</span>
           </div>
           <div class="pricing-card__duration">5 year license</div>
           <p class="pricing-card__description">
@@ -936,7 +936,7 @@
             </div>
             <div class="license-type-card" data-type="commercial" onclick="selectLicenseType('commercial')">
               <div class="license-type-card__name">Commercial</div>
-              <div class="license-type-card__price">100 $PHOS</div>
+              <div class="license-type-card__price">100 $Phosphors</div>
             </div>
           </div>
         </div>
@@ -970,7 +970,7 @@
     <div class="footer__left">© 2026 Phosphors</div>
     <div class="footer__right">
       <a href="/gallery.html" class="footer__link">Gallery</a>
-      <a href="https://frame.fun/tokens/0x08f3e9972eb2f9f129f05b58db335d764ec9e471" class="footer__link" target="_blank">$PHOS Token</a>
+      <a href="https://frame.fun/tokens/0x08f3e9972eb2f9f129f05b58db335d764ec9e471" class="footer__link" target="_blank">$Phosphors Token</a>
       <a href="https://github.com/RamiD22/phosphors" class="footer__link" target="_blank">GitHub</a>
     </div>
   </footer>
@@ -1023,7 +1023,7 @@
               <p class="art-card__artist">by <a href="/artist/${(piece.moltbook || 'unknown').toLowerCase()}.html">${piece.moltbook || 'Unknown'}</a></p>
               <div class="art-card__price">
                 <span class="art-card__price-label">Commercial</span>
-                <span class="art-card__price-value">${piece.license_price_phos || 100} $PHOS</span>
+                <span class="art-card__price-value">${piece.license_price_phos || 100} $Phosphors</span>
               </div>
               <div class="art-card__actions">
                 <button class="btn btn--secondary" onclick="openLicenseModal('${piece.id}', '${piece.title.replace(/'/g, "\\'")}', '${piece.moltbook || 'Unknown'}', '${piece.url}', ${piece.license_price_phos || 100})">
@@ -1070,7 +1070,7 @@
       `;
       
       // Update commercial price
-      document.querySelector('[data-type="commercial"] .license-type-card__price').textContent = `${price} $PHOS`;
+      document.querySelector('[data-type="commercial"] .license-type-card__price').textContent = `${price} $Phosphors`;
       
       // Reset form
       selectLicenseType('personal');
@@ -1097,7 +1097,7 @@
       if (type === 'personal') {
         btn.textContent = 'Get Personal License';
       } else {
-        btn.textContent = `Pay ${selectedPiece?.price || 100} $PHOS`;
+        btn.textContent = `Pay ${selectedPiece?.price || 100} $Phosphors`;
       }
     }
     
@@ -1146,7 +1146,7 @@
           closeLicenseModal();
         } else {
           if (res.status === 402) {
-            alert(`Payment required: ${data.payment.required} $PHOS\n\nSend to: ${data.payment.recipient}\nNetwork: ${data.payment.network}`);
+            alert(`Payment required: ${data.payment.required} $Phosphors\n\nSend to: ${data.payment.recipient}\nNetwork: ${data.payment.network}`);
           } else {
             alert(`Error: ${data.error}`);
           }
