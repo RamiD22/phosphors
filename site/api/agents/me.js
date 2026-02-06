@@ -4,14 +4,8 @@
 
 import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from '../_lib/rate-limit.js';
 import { queryAgents, updateAgentById } from '../_lib/supabase.js';
-
-async function getAgentFromApiKey(apiKey) {
-  if (!apiKey || typeof apiKey !== 'string' || !apiKey.startsWith('ph_')) {
-    return null;
-  }
-  const agents = await queryAgents({ api_key: apiKey });
-  return agents[0] || null;
-}
+import { handleCors } from '../_lib/security.js';
+import { extractApiKey, isValidApiKeyFormat, getAgentByApiKey } from '../_lib/auth.js';
 
 // Input sanitization
 function sanitizeString(str, maxLength = 100) {
@@ -21,25 +15,30 @@ function sanitizeString(str, maxLength = 100) {
 }
 
 export default async function handler(req, res) {
-  // CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, PATCH, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+  // CORS with origin whitelist
+  if (handleCors(req, res, { methods: 'GET, PATCH, OPTIONS' })) {
+    return;
   }
   
-  // Get API key from Authorization header
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  // Get API key - supports both Authorization: Bearer and X-API-Key headers
+  const apiKey = extractApiKey(req);
+  if (!apiKey) {
     return res.status(401).json({
       success: false,
-      error: { code: 'UNAUTHORIZED', message: 'Missing or invalid Authorization header' }
+      error: { 
+        code: 'UNAUTHORIZED', 
+        message: 'Missing or invalid Authorization header',
+        hint: 'Use Authorization: Bearer YOUR_API_KEY or X-API-Key header'
+      }
     });
   }
   
-  const apiKey = authHeader.slice(7);
+  if (!isValidApiKeyFormat(apiKey)) {
+    return res.status(401).json({
+      success: false,
+      error: { code: 'UNAUTHORIZED', message: 'Invalid API key format' }
+    });
+  }
   
   // Rate limiting (by API key)
   const rateCheck = checkRateLimit(`profile:${apiKey}`, RATE_LIMITS.profile);
@@ -50,8 +49,8 @@ export default async function handler(req, res) {
     return rateLimitResponse(res, rateCheck.resetAt);
   }
   
-  // Get agent
-  const agent = await getAgentFromApiKey(apiKey);
+  // Get agent using the auth helper
+  const agent = await getAgentByApiKey(apiKey);
   if (!agent) {
     return res.status(401).json({
       success: false,

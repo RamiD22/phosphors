@@ -11,6 +11,7 @@
  */
 
 import { checkRateLimit, getClientIP, rateLimitResponse } from './_lib/rate-limit.js';
+import { handleCors } from './_lib/security.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://afcnnalweuwgauzijefs.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
@@ -41,13 +42,9 @@ function slugify(title) {
 }
 
 export default async function handler(req, res) {
-  // CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+  // CORS with origin whitelist
+  if (handleCors(req, res, { methods: 'GET, OPTIONS', headers: 'Content-Type' })) {
+    return;
   }
   
   if (req.method !== 'GET') {

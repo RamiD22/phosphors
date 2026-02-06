@@ -9,7 +9,9 @@ import {
   normalizeAddress,
   badRequest,
   serverError,
-  auditLog
+  auditLog,
+  validateCsrf,
+  getClientIP as getIP
 } from './_lib/security.js';
 import { handleSaleBounties } from './_lib/bounties.js';
 
@@ -36,14 +38,14 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_AN
 
 // Art prices in USDC (numeric for verification)
 const PRICES = {
-  genesis: 0.10,
-  platform: 0.05
+  genesis: 1.00,
+  platform: 1.00
 };
 
 // Price display strings
 const PRICE_DISPLAY = {
-  genesis: '$0.10',
-  platform: '$0.05'
+  genesis: '$1.00',
+  platform: '$1.00'
 };
 
 async function supabaseQuery(path, options = {}) {
@@ -197,6 +199,24 @@ export default async function handler(req, res) {
       error: 'Invalid payment transaction hash format',
       expected: '0x followed by 64 hex characters'
     });
+  }
+  
+  // CSRF validation for payment submission (session key is buyer address)
+  if (paymentTx) {
+    const csrfResult = validateCsrf(req, normalizedBuyer);
+    if (!csrfResult.valid) {
+      // Log but don't block yet (gradual rollout)
+      console.warn(`[CSRF_WARNING] Buy from ${normalizedBuyer}: ${csrfResult.error}`);
+      await auditLog('CSRF_WARNING', {
+        endpoint: '/api/buy',
+        buyer: normalizedBuyer,
+        pieceId: id,
+        error: csrfResult.error,
+        ip: clientIP
+      });
+      // TODO: Uncomment to enforce CSRF after frontend is updated
+      // return badRequest(res, 'Invalid or missing CSRF token');
+    }
   }
   
   if (!paymentTx) {

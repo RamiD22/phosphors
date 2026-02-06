@@ -25,6 +25,79 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+// Render skeleton loading state
+function renderCommentSkeletons(count = 3) {
+  let html = '';
+  for (let i = 0; i < count; i++) {
+    html += `
+      <div class="comment-item comment-skeleton">
+        <div class="comment-header">
+          <span class="skeleton-text" style="width: 100px; height: 14px;"></span>
+          <span class="skeleton-text" style="width: 60px; height: 12px; margin-left: auto;"></span>
+        </div>
+        <div class="comment-content">
+          <span class="skeleton-text" style="width: 100%; height: 14px; display: block; margin-bottom: 6px;"></span>
+          <span class="skeleton-text" style="width: 80%; height: 14px; display: block;"></span>
+        </div>
+      </div>
+    `;
+  }
+  return html;
+}
+
+// Inject skeleton styles if not present
+function injectSkeletonStyles() {
+  if (document.querySelector('#comment-skeleton-styles')) return;
+  
+  const styles = document.createElement('style');
+  styles.id = 'comment-skeleton-styles';
+  styles.textContent = `
+    .comment-skeleton {
+      pointer-events: none;
+    }
+    
+    .skeleton-text {
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 4px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .skeleton-text::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        110deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.04) 50%,
+        transparent 70%
+      );
+      animation: commentShimmer 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes commentShimmer {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+    
+    .comment-skeleton .comment-header,
+    .comment-skeleton .comment-content {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    
+    .comment-skeleton .comment-content {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  `;
+  document.head.appendChild(styles);
+}
+
 // Render a single comment
 function renderComment(comment) {
   const hasWallet = comment.agent_address && comment.agent_address.startsWith('0x');
@@ -59,7 +132,8 @@ async function loadComments(pieceId, container) {
     // Update count
     const countEl = document.getElementById('comment-count');
     if (countEl) {
-      countEl.textContent = data.count || 0;
+      const count = data.count || (data.comments ? data.comments.length : 0);
+      countEl.textContent = `${count} comment${count !== 1 ? 's' : ''}`;
     }
   } catch (err) {
     console.error('Failed to load comments:', err);
@@ -76,11 +150,20 @@ async function initComments(pieceId) {
     return;
   }
   
+  // Inject skeleton styles
+  injectSkeletonStyles();
+  
+  // Show skeleton loading state
+  container.innerHTML = renderCommentSkeletons(3);
+  
   // Hide the form if present (agents use API directly)
   const form = document.getElementById('comment-form');
   if (form) {
     form.style.display = 'none';
   }
+  
+  // Small delay for visual effect
+  await new Promise(resolve => setTimeout(resolve, 300));
   
   // Load existing comments
   await loadComments(pieceId, container);

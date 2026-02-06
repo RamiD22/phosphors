@@ -45,16 +45,26 @@ export default async function handler(req, res) {
   const start = Date.now();
   
   try {
-    const [agents, submissions] = await Promise.all([
+    const [agentsResult, submissionsResult] = await Promise.all([
       getAgents(),
       getSubmissions()
     ]);
     
-    // Build lookup sets
-    const agentUsernames = new Set(agents.map(a => a.username.toLowerCase()));
-    const agentWallets = new Map(agents.map(a => [a.username.toLowerCase(), a.wallet]));
+    // Ensure results are arrays (handle null/error responses)
+    const agents = Array.isArray(agentsResult) ? agentsResult : [];
+    const submissions = Array.isArray(submissionsResult) ? submissionsResult : [];
     
-    // Categorize submissions
+    // Build lookup sets (with null-safe access)
+    const agentUsernames = new Set(
+      agents.map(a => a.username?.toLowerCase()).filter(Boolean)
+    );
+    const agentWallets = new Map(
+      agents
+        .filter(a => a.username)
+        .map(a => [a.username.toLowerCase(), a.wallet])
+    );
+    
+    // Categorize submissions (with null-safe access)
     const approvedSubmissions = submissions.filter(s => s.status === 'approved');
     const pendingSubmissions = submissions.filter(s => s.status === 'pending');
     const rejectedSubmissions = submissions.filter(s => s.status === 'rejected');

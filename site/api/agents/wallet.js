@@ -16,6 +16,7 @@ import { Coinbase, Wallet } from '@coinbase/coinbase-sdk';
 import { checkRateLimit, getClientIP, rateLimitResponse } from '../_lib/rate-limit.js';
 import { queryAgents, updateAgentById } from '../_lib/supabase.js';
 import { fundNewAgent } from '../_lib/funder.js';
+import { handleCors } from '../_lib/security.js';
 
 const NETWORK_ID = process.env.NETWORK_ID || 'base-sepolia';
 
@@ -23,13 +24,9 @@ const NETWORK_ID = process.env.NETWORK_ID || 'base-sepolia';
 const WALLET_RATE_LIMIT = { limit: 3, windowMs: 60 * 60 * 1000 };
 
 export default async function handler(req, res) {
-  // CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key');
-  
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+  // CORS with origin whitelist
+  if (handleCors(req, res, { methods: 'POST, OPTIONS', headers: 'Content-Type, Authorization, X-API-Key' })) {
+    return;
   }
   
   if (req.method !== 'POST') {

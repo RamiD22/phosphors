@@ -1,24 +1,65 @@
-// On-chain payment verification for Phosphors
-// Verifies USDC transfers on Base before confirming purchases
+/**
+ * On-chain Payment Verification for Phosphors
+ * 
+ * This module verifies USDC transfers on Base blockchain before confirming purchases.
+ * It implements the x402 payment verification flow:
+ * 
+ * 1. Buyer sends USDC to platform wallet
+ * 2. Buyer provides transaction hash in X-Payment-Tx header
+ * 3. This module verifies the transaction on-chain:
+ *    - Transaction exists and succeeded
+ *    - Correct sender (buyer)
+ *    - Correct amount (within tolerance)
+ *    - Correct asset (USDC)
+ * 4. Atomically claims the transaction to prevent replay attacks
+ * 
+ * @module payment-verify
+ */
 
-// Network configuration
+// ==================== CONFIGURATION ====================
+
+/**
+ * Network configuration - determines RPC and contract addresses
+ * @constant {boolean}
+ */
 const IS_MAINNET = process.env.NETWORK_ID === 'base-mainnet';
+
+/**
+ * JSON-RPC endpoint for Base network
+ * @constant {string}
+ */
 const RPC_URL = IS_MAINNET 
   ? 'https://mainnet.base.org' 
   : 'https://sepolia.base.org';
 
-// USDC contract addresses
+/**
+ * USDC contract address on Base
+ * Base Mainnet: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
+ * Base Sepolia: 0x036CbD53842c5426634e7929541eC2318f3dCF7e
+ * @constant {string}
+ */
 const USDC_CONTRACT = IS_MAINNET
-  ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' // Base Mainnet USDC
-  : '0x036CbD53842c5426634e7929541eC2318f3dCF7e'; // Base Sepolia USDC
+  ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+  : '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
 
-// Platform wallet that receives payments
+/**
+ * Platform wallet that receives payments (for verification)
+ * Payments are verified to be sent TO this address
+ * @constant {string}
+ */
 const PLATFORM_WALLET = process.env.MINTER_WALLET || '0xc27b70A5B583C6E3fF90CcDC4577cC4f1f598281';
 
-// USDC has 6 decimals
+/**
+ * USDC uses 6 decimal places (1 USDC = 1,000,000 wei)
+ * @constant {number}
+ */
 const USDC_DECIMALS = 6;
 
-// ERC20 Transfer event signature
+/**
+ * ERC-20 Transfer event topic (keccak256 of "Transfer(address,address,uint256)")
+ * Used to identify transfer events in transaction logs
+ * @constant {string}
+ */
 const TRANSFER_EVENT_SIGNATURE = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
 
 /**
@@ -163,6 +204,66 @@ export async function isTransactionUsed(txHash) {
   } catch (err) {
     console.error('Transaction usage check error:', err);
     return false;
+  }
+}
+
+/**
+ * Atomically claim a transaction to prevent replay attacks.
+ * Uses INSERT ... ON CONFLICT to ensure only one purchase can claim a tx_hash.
+ * 
+ * @param {string} txHash - Transaction hash to claim
+ * @param {object} purchaseData - Purchase record data
+ * @returns {object} { success: boolean, error?: string, purchase?: object }
+ */
+export async function claimTransactionAtomic(txHash, purchaseData) {
+  const SUPABASE_URL = process.env.SUPABASE_URL || 'https://afcnnalweuwgauzijefs.supabase.co';
+  const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
+  
+  if (!SUPABASE_KEY) {
+    return { success: false, error: 'Server configuration error - no service key' };
+  }
+  
+  try {
+    // Use Supabase's upsert with onConflict=tx_hash to atomically check and insert
+    // If tx_hash already exists, this will NOT insert and return empty array
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/purchases`,
+      {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation,resolution=ignore-duplicates'
+        },
+        body: JSON.stringify({
+          ...purchaseData,
+          tx_hash: txHash.toLowerCase()
+        })
+      }
+    );
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      // Check if it's a duplicate key error (tx_hash unique constraint)
+      if (res.status === 409 || errorText.includes('duplicate') || errorText.includes('unique')) {
+        return { success: false, error: 'Transaction already used for a previous purchase' };
+      }
+      console.error('Atomic claim failed:', errorText);
+      return { success: false, error: 'Failed to record purchase' };
+    }
+    
+    const purchases = await res.json();
+    
+    // If empty array, the tx_hash was already used (ON CONFLICT DO NOTHING)
+    if (!purchases || purchases.length === 0) {
+      return { success: false, error: 'Transaction already used for a previous purchase' };
+    }
+    
+    return { success: true, purchase: purchases[0] };
+  } catch (err) {
+    console.error('Atomic transaction claim error:', err);
+    return { success: false, error: 'Failed to process purchase atomically' };
   }
 }
 

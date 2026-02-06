@@ -1,13 +1,37 @@
 /**
- * Wallet Creation Library for Phosphors
+ * Wallet Management Library for Phosphors
  * 
- * Creates wallets via CDP SDK with atomic guarantees
+ * Creates and manages MPC wallets via Coinbase Developer Platform (CDP) SDK.
+ * CDP provides secure, non-custodial wallets without requiring users to manage
+ * private keys directly.
+ * 
+ * ## Features:
+ * - Create new wallets for agents during registration
+ * - Import existing wallets from seed data
+ * - Get platform wallets (minter, funder) for operations
+ * - Check wallet balances
+ * 
+ * ## Security:
+ * - Wallets are MPC (Multi-Party Computation) - keys are never exposed
+ * - Seeds are encrypted and stored securely
+ * - CDP handles signing operations server-side
+ * 
+ * @module wallet
  */
 
 import { Coinbase, Wallet } from '@coinbase/coinbase-sdk';
 
+/**
+ * Network for wallet operations
+ * @constant {string}
+ */
 const NETWORK_ID = process.env.NETWORK_ID || 'base-sepolia';
 
+/**
+ * Flag to track if CDP SDK has been configured
+ * Prevents redundant configuration calls
+ * @type {boolean}
+ */
 let cdpConfigured = false;
 
 /**

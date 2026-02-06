@@ -1,139 +1,175 @@
-// Mobile Navigation - Hamburger Menu
+// Mobile Navigation - Enhanced Hamburger Menu
+// Works with existing HTML structure from mega-menu.css
 (function() {
   'use strict';
 
-  // Wait for DOM
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
-
   function init() {
-    // Find existing nav links from desktop nav
-    const desktopNav = document.querySelector('header nav');
-    if (!desktopNav) return;
-
-    const navLinks = Array.from(desktopNav.querySelectorAll('a'));
+    // Find existing elements
+    const hamburger = document.getElementById('hamburger');
+    const mobileNav = document.getElementById('mobile-nav');
+    const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
+    const mobileNavClose = document.getElementById('mobile-nav-close');
     
-    // Create hamburger button
-    const hamburger = document.createElement('button');
-    hamburger.className = 'hamburger';
-    hamburger.setAttribute('aria-label', 'Open menu');
-    hamburger.setAttribute('aria-expanded', 'false');
-    hamburger.innerHTML = '<span></span><span></span><span></span>';
+    // Exit if elements don't exist
+    if (!hamburger || !mobileNav) {
+      console.warn('Mobile nav: Required elements not found');
+      return;
+    }
 
-    // Create overlay
-    const overlay = document.createElement('div');
-    overlay.className = 'mobile-nav-overlay';
+    // State
+    let isOpen = false;
+    let lastFocusedElement = null;
 
-    // Create mobile nav panel
-    const mobileNav = document.createElement('nav');
-    mobileNav.className = 'mobile-nav';
-    mobileNav.setAttribute('aria-label', 'Mobile navigation');
-
-    // Close button
-    const closeBtn = document.createElement('button');
-    closeBtn.className = 'mobile-nav-close';
-    closeBtn.setAttribute('aria-label', 'Close menu');
-    closeBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>`;
-
-    // Build nav links
-    const linksList = document.createElement('ul');
-    linksList.className = 'mobile-nav-links';
-    
-    navLinks.forEach(link => {
-      const li = document.createElement('li');
-      const a = document.createElement('a');
-      a.href = link.href;
-      a.textContent = link.textContent;
-      if (link.classList.contains('active') || link.getAttribute('aria-current') === 'page') {
-        a.classList.add('active');
-        a.setAttribute('aria-current', 'page');
-      }
-      li.appendChild(a);
-      linksList.appendChild(li);
-    });
-
-    // Footer
-    const footer = document.createElement('div');
-    footer.className = 'mobile-nav-footer';
-    footer.textContent = '© 2026 Phosphors';
-
-    // Assemble
-    mobileNav.appendChild(closeBtn);
-    mobileNav.appendChild(linksList);
-    mobileNav.appendChild(footer);
-
-    // Insert into DOM
-    const header = document.querySelector('header');
-    header.appendChild(hamburger);
-    document.body.appendChild(overlay);
-    document.body.appendChild(mobileNav);
-
-    // Toggle functions
+    // Open menu
     function openMenu() {
+      if (isOpen) return;
+      isOpen = true;
+      
+      lastFocusedElement = document.activeElement;
+      
       hamburger.classList.add('active');
       hamburger.setAttribute('aria-expanded', 'true');
-      overlay.classList.add('active');
+      
+      if (mobileNavOverlay) {
+        mobileNavOverlay.classList.add('active');
+      }
+      
       mobileNav.classList.add('active');
       document.body.classList.add('menu-open');
       
-      // Focus first link
-      setTimeout(() => {
-        const firstLink = mobileNav.querySelector('a');
-        if (firstLink) firstLink.focus();
-      }, 100);
+      // Focus first link after animation
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          const firstLink = mobileNav.querySelector('a, button:not(.mobile-nav__close)');
+          if (firstLink) firstLink.focus();
+        }, 100);
+      });
     }
 
+    // Close menu
     function closeMenu() {
+      if (!isOpen) return;
+      isOpen = false;
+      
       hamburger.classList.remove('active');
       hamburger.setAttribute('aria-expanded', 'false');
-      overlay.classList.remove('active');
+      
+      if (mobileNavOverlay) {
+        mobileNavOverlay.classList.remove('active');
+      }
+      
       mobileNav.classList.remove('active');
       document.body.classList.remove('menu-open');
-      hamburger.focus();
+      
+      // Restore focus
+      if (lastFocusedElement) {
+        lastFocusedElement.focus();
+        lastFocusedElement = null;
+      }
     }
 
-    // Event listeners
-    hamburger.addEventListener('click', function() {
-      if (mobileNav.classList.contains('active')) {
+    // Toggle menu
+    function toggleMenu() {
+      if (isOpen) {
         closeMenu();
       } else {
         openMenu();
       }
+    }
+
+    // Event: Hamburger click
+    hamburger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleMenu();
     });
 
-    closeBtn.addEventListener('click', closeMenu);
-    overlay.addEventListener('click', closeMenu);
+    // Event: Close button click
+    if (mobileNavClose) {
+      mobileNavClose.addEventListener('click', closeMenu);
+    }
 
-    // Close on escape
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape' && mobileNav.classList.contains('active')) {
+    // Event: Overlay click
+    if (mobileNavOverlay) {
+      mobileNavOverlay.addEventListener('click', closeMenu);
+    }
+
+    // Event: ESC key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && isOpen) {
         closeMenu();
       }
     });
 
-    // Close when clicking a link (for same-page navigation)
+    // Event: Link clicks (close menu on navigation)
     mobileNav.querySelectorAll('a').forEach(link => {
-      link.addEventListener('click', closeMenu);
+      link.addEventListener('click', () => {
+        // Small delay to allow click to register
+        setTimeout(closeMenu, 50);
+      });
     });
 
-    // Trap focus within mobile nav when open
-    mobileNav.addEventListener('keydown', function(e) {
-      if (e.key !== 'Tab') return;
+    // Event: Focus trap within mobile nav
+    mobileNav.addEventListener('keydown', (e) => {
+      if (e.key !== 'Tab' || !isOpen) return;
       
-      const focusable = mobileNav.querySelectorAll('button, a');
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
+      const focusableElements = mobileNav.querySelectorAll(
+        'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      const firstEl = focusableElements[0];
+      const lastEl = focusableElements[focusableElements.length - 1];
 
-      if (e.shiftKey && document.activeElement === first) {
+      if (e.shiftKey && document.activeElement === firstEl) {
         e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
+        lastEl.focus();
+      } else if (!e.shiftKey && document.activeElement === lastEl) {
         e.preventDefault();
-        first.focus();
+        firstEl.focus();
       }
     });
+
+    // Event: Resize handler (close menu if resized to desktop)
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (window.innerWidth > 768 && isOpen) {
+          closeMenu();
+        }
+      }, 100);
+    }, { passive: true });
+
+    // Event: Handle swipe to close (touch)
+    let touchStartX = 0;
+    let touchEndX = 0;
+    
+    mobileNav.addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+    
+    mobileNav.addEventListener('touchend', (e) => {
+      touchEndX = e.changedTouches[0].screenX;
+      const swipeDistance = touchEndX - touchStartX;
+      
+      // Swipe right to close (since nav slides in from right)
+      if (swipeDistance > 80 && isOpen) {
+        closeMenu();
+      }
+    }, { passive: true });
+
+    // Prevent scroll when menu is open
+    mobileNav.addEventListener('touchmove', (e) => {
+      // Allow scroll within nav if content overflows
+      if (mobileNav.scrollHeight > mobileNav.clientHeight) {
+        return;
+      }
+      e.preventDefault();
+    }, { passive: false });
+  }
+
+  // Initialize on DOM ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
   }
 })();

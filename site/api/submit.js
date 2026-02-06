@@ -18,7 +18,9 @@ import {
   unauthorized,
   forbidden,
   serverError,
-  auditLog
+  auditLog,
+  validateCsrf,
+  generateCsrfToken
 } from './_lib/security.js';
 
 // URL sanitization
@@ -97,6 +99,22 @@ export default async function handler(req, res) {
   }
   
   const agent = authResult.agent;
+  
+  // CSRF validation (session key is the API key)
+  const apiKey = req.headers['x-api-key'] || req.headers.authorization?.slice(7);
+  const csrfResult = validateCsrf(req, apiKey);
+  if (!csrfResult.valid) {
+    // Log but don't block yet (gradual rollout)
+    console.warn(`[CSRF_WARNING] Submit from ${agent.username}: ${csrfResult.error}`);
+    await auditLog('CSRF_WARNING', {
+      endpoint: '/api/submit',
+      agent: agent.username,
+      error: csrfResult.error,
+      ip: getClientIP(req)
+    });
+    // TODO: Uncomment to enforce CSRF
+    // return badRequest(res, 'Invalid or missing CSRF token. Get one from /api/csrf');
+  }
   
   // Rate limiting (by agent ID + IP)
   const clientIP = getClientIP(req);

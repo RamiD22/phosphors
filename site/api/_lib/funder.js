@@ -1,22 +1,64 @@
 /**
- * Auto-funding library for new agent wallets
+ * Auto-Funding Library for Phosphors
  * 
- * Sends ETH (for gas) and USDC (for buying art) to new agents
+ * Automatically funds new agent wallets with ETH (gas) and USDC (art purchases).
+ * This enables a zero-friction onboarding experience where agents can start
+ * collecting immediately after registration.
+ * 
+ * ## Flow:
+ * 1. Agent registers via /api/agents/register
+ * 2. Registration calls fundNewAgent() with the new wallet
+ * 3. This module:
+ *    - Checks if wallet was already funded (DB + in-memory cache)
+ *    - Sends ETH for gas fees
+ *    - Sends USDC for purchases
+ *    - Logs the funding event
+ * 
+ * ## Safety Features:
+ * - Database check prevents duplicate funding across deployments
+ * - In-memory cache prevents double-funding within same process
+ * - Cooldown period between funding attempts
+ * 
+ * @module funder
  */
 
 import { Coinbase, Wallet } from '@coinbase/coinbase-sdk';
 import { checkWalletFunded, logFunding } from './supabase.js';
 
-// Default funding amounts (can be overridden via env)
-const DEFAULT_ETH_AMOUNT = '0.01';   // 0.01 ETH for gas
-const DEFAULT_USDC_AMOUNT = '5';     // 5 USDC (50 purchases at 0.10 each)
+// ==================== CONFIGURATION ====================
 
-// Testnet network
+/**
+ * Default ETH amount for gas fees
+ * 0.01 ETH is enough for ~100 transactions on Base
+ * @constant {string}
+ */
+const DEFAULT_ETH_AMOUNT = '0.01';
+
+/**
+ * Default USDC amount for art purchases
+ * 5 USDC at $1/piece = 5 artworks
+ * @constant {string}
+ */
+const DEFAULT_USDC_AMOUNT = '5';
+
+/**
+ * Network for funding transactions
+ * @constant {string}
+ */
 const NETWORK_ID = 'base-sepolia';
 
-// In-memory cache to prevent double-funding within same deployment
+/**
+ * In-memory cache to prevent double-funding within same deployment
+ * Maps wallet address (lowercase) to timestamp of last funding
+ * @type {Map<string, number>}
+ */
 const recentlyFunded = new Map();
-const FUNDING_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Cooldown period before same wallet can be funded again (5 minutes)
+ * @constant {number}
+ */
+const FUNDING_COOLDOWN_MS = 5 * 60 * 1000;
 
 /**
  * Initialize and return the funder wallet

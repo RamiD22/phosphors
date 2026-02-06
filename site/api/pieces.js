@@ -1,21 +1,35 @@
-// List available art pieces
-// GET /api/pieces - list all pieces
-// GET /api/pieces?slug=xxx - get specific piece
+/**
+ * GET /api/pieces
+ * 
+ * List available art pieces from the gallery.
+ * 
+ * Query params:
+ *   slug  - Get a specific piece by ID
+ *   limit - Max pieces to return (default: 50, max: 100)
+ */
+
+import { sendError, sendSuccess } from './_lib/errors.js';
+import { logger, logRequest } from './_lib/logger.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://afcnnalweuwgauzijefs.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
 
 export default async function handler(req, res) {
+  const complete = logRequest(req);
+  
+  // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   
   if (req.method === 'OPTIONS') {
+    complete(200);
     return res.status(200).end();
   }
   
   if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    complete(405);
+    return sendError(res, 'BAD_REQUEST', 'Method not allowed');
   }
 
   const { slug, limit = 50 } = req.query;
@@ -38,21 +52,37 @@ export default async function handler(req, res) {
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error('Supabase error:', errText);
-      throw new Error('Failed to fetch pieces');
+      logger.error('Supabase query failed', { status: response.status, error: errText });
+      throw new Error('Database query failed');
     }
 
     const pieces = await response.json();
 
     if (slug && pieces.length === 0) {
-      return res.status(404).json({ error: 'Piece not found' });
+      complete(404);
+      return sendError(res, 'PIECE_NOT_FOUND', `Piece "${slug}" not found`);
     }
 
+    // Single piece request
     if (slug) {
-      return res.status(200).json(pieces[0]);
+      complete(200);
+      return sendSuccess(res, {
+        piece: {
+          id: pieces[0].id,
+          title: pieces[0].title,
+          description: pieces[0].description,
+          url: pieces[0].url,
+          tokenId: pieces[0].token_id,
+          preview: pieces[0].preview_url,
+          artist: { username: pieces[0].moltbook },
+          submittedAt: pieces[0].submitted_at
+        }
+      });
     }
 
-    return res.status(200).json({
+    // List request
+    complete(200);
+    return sendSuccess(res, {
       count: pieces.length,
       pieces: pieces.map(p => ({
         id: p.id,
@@ -67,7 +97,8 @@ export default async function handler(req, res) {
     });
 
   } catch (err) {
-    console.error('Pieces API error:', err);
-    return res.status(500).json({ error: 'Failed to fetch pieces' });
+    logger.error('Pieces API error', { error: err.message });
+    complete(500);
+    return sendError(res, 'INTERNAL_ERROR', 'Failed to fetch pieces');
   }
 }

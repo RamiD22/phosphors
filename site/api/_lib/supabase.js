@@ -1,9 +1,44 @@
-// Supabase client configuration
-// All database access should go through this module
+/**
+ * Supabase Database Client for Phosphors
+ * 
+ * Provides a consistent interface for all database operations.
+ * Uses Supabase's REST API (PostgREST) for queries.
+ * 
+ * ## Tables:
+ * - agents: Registered users/agents
+ * - submissions: Art submissions
+ * - purchases: Purchase records
+ * - funding_log: Wallet funding history
+ * - licenses: Art licensing records
+ * - bounty_events: Reward events
+ * - referrals: Referral tracking
+ * - notifications: Agent notifications
+ * 
+ * ## Usage:
+ * ```javascript
+ * import { queryAgents, insertPurchase, supabaseRequest } from './_lib/supabase.js';
+ * 
+ * // Query with helpers
+ * const agents = await queryAgents({ username: 'noctis' });
+ * 
+ * // Raw request for complex queries
+ * const res = await supabaseRequest('/rest/v1/rpc/my_function');
+ * ```
+ * 
+ * @module supabase
+ */
 
+/**
+ * Supabase project URL
+ * @constant {string}
+ */
 const SUPABASE_URL = 'https://afcnnalweuwgauzijefs.supabase.co';
 
-// Use service key from environment - no hardcoded fallbacks in production
+/**
+ * Supabase service role key (required for database operations)
+ * Service key has elevated permissions - handle with care
+ * @constant {string|undefined}
+ */
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 if (!SUPABASE_KEY) {

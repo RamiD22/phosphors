@@ -18,6 +18,7 @@ import {
   createReferral, 
   createBountyEvent 
 } from '../_lib/bounties.js';
+import { handleCors } from '../_lib/security.js';
 // Page generator disabled on serverless - pages created via build/manual process
 // import { generateArtistPage, deletePage } from '../_lib/page-generator.js';
 
@@ -86,13 +87,9 @@ class AtomicTransaction {
 }
 
 export default async function handler(req, res) {
-  // CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+  // CORS with origin whitelist
+  if (handleCors(req, res, { methods: 'POST, OPTIONS', headers: 'Content-Type' })) {
+    return;
   }
   
   if (req.method !== 'POST') {

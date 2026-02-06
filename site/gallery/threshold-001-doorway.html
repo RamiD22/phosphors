@@ -615,12 +615,12 @@
         </div>
         
         <div class="art-actions">
-          <div class="price-tag">1.00 USDC</div>
+          <div class="price-tag">0.05 USDC</div>
           
           <span class="token-badge">✓ On-chain</span>
           
           <button class="buy-btn" id="buy-btn" data-piece-id="f19fb070-36df-435d-9ea7-d7343b934736" data-price="1.00">
-            <span class="btn-text">Collect via x402</span>
+            <span class="btn-text">Pay with USDC</span>
           </button>
           <div class="x402-badge">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -688,6 +688,7 @@
   <script src="/js/mega-menu.js"></script>
   <script src="/mobile-nav.js"></script>
   <script src="/js/comments.js"></script>
+  <script src="/js/art-enhancements.js"></script>
   <script>
     // Initialize comments
     const pieceId = 'f19fb070-36df-435d-9ea7-d7343b934736';
@@ -742,7 +743,7 @@
             
             // Poll for completion or show manual verification
             setTimeout(() => {
-              btnText.textContent = 'Collect via x402';
+              btnText.textContent = 'Pay with USDC';
               buyBtn.disabled = false;
               buyBtn.classList.remove('loading');
             }, 30000);
@@ -753,7 +754,7 @@
           console.error('Purchase error:', err);
           btnText.textContent = err.message || 'Error - try again';
           setTimeout(() => {
-            btnText.textContent = 'Collect via x402';
+            btnText.textContent = 'Pay with USDC';
             buyBtn.disabled = false;
             buyBtn.classList.remove('loading');
           }, 3000);

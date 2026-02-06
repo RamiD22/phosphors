@@ -126,31 +126,139 @@ async function getLicensablePieces(limit = 50, offset = 0) {
   return await res.json();
 }
 
+// Network configuration for $PHOS verification
+const IS_MAINNET = process.env.NETWORK_ID === 'base-mainnet';
+const RPC_URL = IS_MAINNET 
+  ? 'https://mainnet.base.org' 
+  : 'https://sepolia.base.org';
+
+// $PHOS token contract (ERC20)
+const PHOS_CONTRACT = process.env.PHOS_TOKEN_ADDRESS || '0x08f3e9972eb2f9f129f05b58db335d764ec9e471';
+const PHOS_TREASURY = process.env.PHOS_TREASURY || '0xc27b70A5B583C6E3fF90CcDC4577cC4f1f598281';
+const PHOS_DECIMALS = 18; // Standard ERC20 decimals
+
+// ERC20 Transfer event signature
+const TRANSFER_EVENT_SIGNATURE = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+
 /**
- * Verify $PHOS payment (simulated for now)
- * In production, this would verify on-chain transaction
+ * Check if a license transaction has already been used
+ */
+async function isLicenseTxUsed(txHash) {
+  try {
+    const res = await supabaseQuery(
+      `/rest/v1/licenses?tx_hash=eq.${encodeURIComponent(txHash.toLowerCase())}&select=id&limit=1`
+    );
+    const licenses = await res.json();
+    return licenses && licenses.length > 0;
+  } catch (err) {
+    console.error('License tx check error:', err);
+    return false;
+  }
+}
+
+/**
+ * Verify $PHOS payment on-chain
+ * Verifies the transaction is a valid ERC20 transfer of $PHOS to the treasury
  */
 async function verifyPhosPayment(txHash, expectedAmount, fromWallet) {
-  // TODO: Implement actual on-chain verification
-  // For now, simulate verification
-  if (!txHash || !txHash.startsWith('0x')) {
-    return { valid: false, error: 'Invalid transaction hash' };
+  // Validate transaction hash format
+  if (!txHash || !/^0x[a-fA-F0-9]{64}$/.test(txHash)) {
+    return { valid: false, error: 'Invalid transaction hash format' };
   }
   
-  // In production:
-  // 1. Fetch transaction from Base chain
-  // 2. Verify it's a $PHOS transfer
-  // 3. Verify amount >= expectedAmount
-  // 4. Verify from address matches
-  // 5. Verify to address is Phosphors treasury
+  // Validate wallet address format
+  if (!fromWallet || !/^0x[a-fA-F0-9]{40}$/.test(fromWallet)) {
+    return { valid: false, error: 'Invalid wallet address format' };
+  }
   
-  // Simulated success for development
-  console.log(`[PHOS Payment] Simulating verification for ${txHash}`);
-  return { 
-    valid: true, 
-    amount: expectedAmount,
-    simulated: true 
-  };
+  // Check for replay attack - has this tx already been used for a license?
+  const alreadyUsed = await isLicenseTxUsed(txHash);
+  if (alreadyUsed) {
+    return { valid: false, error: 'Transaction already used for a previous license' };
+  }
+  
+  const sender = fromWallet.toLowerCase();
+  const expectedAmountWei = BigInt(Math.round(expectedAmount * (10 ** PHOS_DECIMALS)));
+  
+  try {
+    // Fetch transaction receipt from Base
+    const receiptResponse = await fetch(RPC_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'eth_getTransactionReceipt',
+        params: [txHash]
+      })
+    });
+    
+    const receiptData = await receiptResponse.json();
+    const receipt = receiptData.result;
+    
+    if (!receipt) {
+      return { valid: false, error: 'Transaction not found or not yet confirmed' };
+    }
+    
+    // Check transaction was successful
+    if (receipt.status !== '0x1') {
+      return { valid: false, error: 'Transaction failed on-chain' };
+    }
+    
+    // Check the transaction interacts with the PHOS contract
+    if (receipt.to?.toLowerCase() !== PHOS_CONTRACT.toLowerCase()) {
+      return { valid: false, error: 'Transaction is not a $PHOS transfer' };
+    }
+    
+    // Parse Transfer events from logs
+    const transferLogs = receipt.logs.filter(log => 
+      log.topics[0] === TRANSFER_EVENT_SIGNATURE &&
+      log.address.toLowerCase() === PHOS_CONTRACT.toLowerCase()
+    );
+    
+    if (transferLogs.length === 0) {
+      return { valid: false, error: 'No $PHOS transfer found in transaction' };
+    }
+    
+    // Find a matching transfer to the treasury
+    for (const log of transferLogs) {
+      // ERC20 Transfer: topics[1] = from, topics[2] = to, data = amount
+      const logFrom = '0x' + log.topics[1].slice(26).toLowerCase();
+      const logTo = '0x' + log.topics[2].slice(26).toLowerCase();
+      const logAmount = BigInt(log.data);
+      
+      // Check if this transfer matches: from=sender, to=treasury
+      if (logFrom === sender && logTo === PHOS_TREASURY.toLowerCase()) {
+        // Check amount is >= expected (allow overpayment)
+        if (logAmount >= expectedAmountWei) {
+          const actualAmount = Number(logAmount) / (10 ** PHOS_DECIMALS);
+          console.log(`[PHOS Payment] Verified: ${actualAmount} $PHOS from ${sender} (tx: ${txHash})`);
+          return {
+            valid: true,
+            amount: actualAmount,
+            details: {
+              txHash,
+              from: logFrom,
+              to: logTo,
+              blockNumber: parseInt(receipt.blockNumber, 16)
+            }
+          };
+        } else {
+          const actualAmount = Number(logAmount) / (10 ** PHOS_DECIMALS);
+          return {
+            valid: false,
+            error: `Insufficient payment: expected ${expectedAmount} $PHOS, got ${actualAmount} $PHOS`
+          };
+        }
+      }
+    }
+    
+    return { valid: false, error: 'No matching $PHOS transfer to treasury found (wrong sender or recipient)' };
+    
+  } catch (err) {
+    console.error('$PHOS payment verification error:', err);
+    return { valid: false, error: 'Failed to verify transaction on-chain' };
+  }
 }
 
 export default async function handler(req, res) {

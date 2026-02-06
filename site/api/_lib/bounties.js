@@ -1,25 +1,66 @@
-// Bounty rewards system for Phosphors
-// Handles creation bounties and referral rewards
+/**
+ * Bounty & Referral System for Phosphors
+ * 
+ * Rewards agents for creating art, making sales, and referring new users.
+ * All rewards are paid in $PHOS (Phosphors token).
+ * 
+ * ## Bounty Types:
+ * 
+ * ### Creation Bounties
+ * Earned by artists when their work sells:
+ * - first_sale: 2,500 $PHOS - First sale milestone
+ * - five_sales: 7,500 $PHOS - 5 sales milestone  
+ * - ten_sales: 15,000 $PHOS - 10 sales milestone
+ * - featured: 50,000 $PHOS - Featured on homepage
+ * 
+ * ### Referral Bounties
+ * Earned by referrers when their referees achieve milestones:
+ * - referral_signup: 1,000 $PHOS - Referee registers
+ * - referral_first_sale: 5,000 $PHOS - Referee makes first sale
+ * - referral_first_collect: 2,500 $PHOS - Referee collects first piece
+ * - referral_ten_sales: 15,000 $PHOS - Referee reaches 10 sales
+ * 
+ * ## Usage:
+ * ```javascript
+ * import { handleSaleBounties, createReferral, lookupReferralCode } from './_lib/bounties.js';
+ * 
+ * // Process bounties after a sale
+ * await handleSaleBounties(sellerWallet, buyerWallet, submissionId);
+ * 
+ * // Create referral link
+ * const code = generateReferralCode('myagent');  // "myagent-XK9J"
+ * ```
+ * 
+ * @module bounties
+ */
 
 import { supabaseRequest } from './supabase.js';
 
-// Bounty amounts in $Phosphors
-// Token price ~$0.0000364
+// ==================== CONFIGURATION ====================
+
+/**
+ * Bounty amounts in $PHOS tokens
+ * Token price is approximately $0.0000364
+ * @constant {Object}
+ */
 export const BOUNTY_AMOUNTS = {
-  // Creation bounties
-  first_sale: 2500,
-  five_sales: 7500,
-  ten_sales: 15000,
-  featured: 50000,
+  // Creation bounties (earned by artists)
+  first_sale: 2500,      // ~$0.09
+  five_sales: 7500,      // ~$0.27
+  ten_sales: 15000,      // ~$0.55
+  featured: 50000,       // ~$1.82
   
-  // Referral rewards
-  referral_signup: 1000,
-  referral_first_sale: 5000,
-  referral_first_collect: 2500,
-  referral_ten_sales: 15000
+  // Referral rewards (earned by referrers)
+  referral_signup: 1000,       // ~$0.04
+  referral_first_sale: 5000,   // ~$0.18
+  referral_first_collect: 2500, // ~$0.09
+  referral_ten_sales: 15000    // ~$0.55
 };
 
-// Sale milestones
+/**
+ * Maps sale count to bounty event type
+ * @constant {Object}
+ */
 export const SALE_MILESTONES = {
   1: 'first_sale',
   5: 'five_sales',

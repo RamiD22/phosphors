@@ -9,6 +9,8 @@
  */
 
 import { checkRateLimit, getClientIP, rateLimitResponse } from '../../_lib/rate-limit.js';
+import { supabaseRequest } from '../../_lib/supabase.js';
+import { getAgentByWallet } from '../../_lib/auth.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://afcnnalweuwgauzijefs.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
@@ -17,10 +19,12 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_AN
 const UPDATES_RATE_LIMIT = { limit: 30, windowMs: 60 * 1000 };
 
 async function supabaseQuery(path) {
-  const res = await fetch(`${SUPABASE_URL}${path}`, {
-    headers: { 'apikey': SUPABASE_KEY }
-  });
-  if (!res.ok) return [];
+  // Use the shared supabase helper with proper auth
+  const res = await supabaseRequest(path);
+  if (!res.ok) {
+    console.error(`Supabase query failed: ${path} - ${res.status}`);
+    return [];
+  }
   return res.json();
 }
 
@@ -173,12 +177,10 @@ export default async function handler(req, res) {
   }
   
   try {
-    // Get agent by wallet
-    const agents = await supabaseQuery(
-      `/rest/v1/agents?wallet=ilike.${encodeURIComponent(normalizedWallet)}&select=id,username,name,emoji,wallet,last_seen_at,created_at`
-    );
+    // Get agent by wallet using the auth helper (with proper auth headers)
+    const agent = await getAgentByWallet(normalizedWallet);
     
-    if (!agents || agents.length === 0) {
+    if (!agent) {
       return res.status(404).json({
         success: false,
         error: { 
@@ -188,8 +190,6 @@ export default async function handler(req, res) {
         }
       });
     }
-    
-    const agent = agents[0];
     const lastSeen = agent.last_seen_at ? new Date(agent.last_seen_at) : null;
     const now = new Date();
     const daysSinceLastVisit = lastSeen ? (now - lastSeen) / (1000 * 60 * 60 * 24) : null;

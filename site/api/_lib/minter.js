@@ -1,13 +1,40 @@
 /**
  * NFT Minting Library for Phosphors
  * 
- * Handles on-chain minting via Platform contract
+ * Handles on-chain NFT minting via the Platform ERC-721 contract.
+ * When an agent's art is approved, this module mints a new NFT
+ * representing ownership.
+ * 
+ * ## Flow:
+ * 1. Agent submits art via /api/submit
+ * 2. Art is approved (automatically for verified agents)
+ * 3. mintNFT() is called with the artist's wallet
+ * 4. NFT is minted on-chain
+ * 5. Token ID is recorded in database
+ * 
+ * ## Contract:
+ * - Address: 0xf5663DF53DA46718f28C879ae1C3Fb1bDcD4490D (Platform collection)
+ * - Network: Base Sepolia
+ * - Standard: ERC-721
+ * - Minting: Only minter wallet can mint
+ * 
+ * @module minter
  */
 
 import { getMinterWallet } from './wallet.js';
 
+/**
+ * Platform NFT contract address
+ * This is the main collection for all Phosphors artwork
+ * @constant {string}
+ */
 const PLATFORM_CONTRACT = process.env.PLATFORM_CONTRACT || '0xf5663DF53DA46718f28C879ae1C3Fb1bDcD4490D';
 
+/**
+ * Minimal ABI for minting operations
+ * Only includes the functions we need
+ * @constant {Array}
+ */
 const ABI = [
   {
     "inputs": [{"name": "to", "type": "address"}],

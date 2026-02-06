@@ -1,7 +1,38 @@
-// Simple in-memory rate limiter for Vercel serverless
-// Note: This uses memory store, so limits reset on cold starts
-// For production, consider Redis or Upstash
+/**
+ * Rate Limiting for Phosphors API
+ * 
+ * Simple in-memory rate limiter for Vercel serverless functions.
+ * Protects against abuse and ensures fair usage.
+ * 
+ * ## Limitations:
+ * - Uses in-memory store (resets on cold starts)
+ * - Not shared across function instances
+ * - For production, consider Redis or Upstash
+ * 
+ * ## Usage:
+ * ```javascript
+ * import { checkRateLimit, getClientIP, rateLimitResponse, RATE_LIMITS } from './_lib/rate-limit.js';
+ * 
+ * const ip = getClientIP(req);
+ * const check = checkRateLimit(`buy:${ip}`, RATE_LIMITS.buy);
+ * 
+ * if (!check.allowed) {
+ *   return rateLimitResponse(res, check.resetAt);
+ * }
+ * ```
+ * 
+ * ## Response Headers:
+ * - X-RateLimit-Remaining: Requests left in window
+ * - X-RateLimit-Reset: Unix timestamp when window resets
+ * - Retry-After: Seconds until retry (when limited)
+ * 
+ * @module rate-limit
+ */
 
+/**
+ * In-memory store for rate limit tracking
+ * @type {Map<string, {count: number, windowStart: number, windowMs: number}>}
+ */
 const rateLimitStore = new Map();
 
 // Clean up old entries every 5 minutes
