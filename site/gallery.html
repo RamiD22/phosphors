@@ -116,10 +116,16 @@
       font-size: var(--text-5xl);
       font-weight: 700;
       margin-bottom: var(--space-4);
-      background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-light) 100%);
+      background: linear-gradient(135deg, #b88cff 0%, #6ee7e7 50%, #ff6b9d 100%);
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
+      animation: floatSmooth 4s ease-in-out infinite;
+    }
+    
+    @keyframes floatSmooth {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
     }
     
     .gallery-hero__subtitle {
@@ -257,16 +263,19 @@
       transform: translateY(10px);
     }
     
-    /* Art Cards */
+    /* Art Cards - Glassmorphism */
     .art-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-lg);
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      border-radius: var(--radius-xl);
       overflow: hidden;
       opacity: 0;
       transform: translateY(30px) scale(0.98);
       animation: cardReveal 0.6s var(--ease-out) forwards;
-      transition: all var(--duration-slow) var(--ease-out);
+      transition: transform 0.4s var(--ease-out), box-shadow 0.4s var(--ease-out), border-color 0.4s var(--ease-out), background 0.4s var(--ease-out);
       position: relative;
     }
     
@@ -300,11 +309,12 @@
     }
     
     .art-card:hover {
-      border-color: var(--border-accent);
-      transform: translateY(-12px) scale(1.02);
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(184, 140, 255, 0.3);
+      transform: translateY(-8px) rotateX(2deg);
       box-shadow: 
-        0 30px 60px rgba(0, 0, 0, 0.4),
-        0 0 80px rgba(var(--accent-rgb), 0.1),
+        0 16px 48px rgba(0, 0, 0, 0.4),
+        0 0 40px rgba(184, 140, 255, 0.1),
         inset 0 1px 0 rgba(255, 255, 255, 0.05);
     }
     
@@ -466,9 +476,11 @@
     
     /* Skeleton Loading - Enhanced Animation */
     .skeleton-card {
-      background: var(--bg-card);
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-lg);
+      border-radius: var(--radius-xl);
       overflow: hidden;
       position: relative;
     }
@@ -589,7 +601,7 @@
       padding: var(--space-4) var(--space-10);
       background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.1) 0%, rgba(var(--cyan-rgb), 0.05) 100%);
       border: 1px solid rgba(var(--accent-rgb), 0.25);
-      border-radius: var(--radius-lg);
+      border-radius: var(--radius-xl);
       color: var(--accent-light);
       font-family: var(--font-body);
       font-size: var(--text-base);
@@ -853,6 +865,11 @@
   <!-- Background -->
   <div class="bg-noise"></div>
   <div class="bg-gradient-radial"></div>
+  
+  <!-- Gradient Blob Backgrounds -->
+  <div class="blob-bg blob-purple"></div>
+  <div class="blob-bg blob-cyan"></div>
+  <div class="blob-bg blob-rose"></div>
   
   <!-- Header -->
   <header class="header" id="header">
